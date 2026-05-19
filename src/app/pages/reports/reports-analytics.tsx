@@ -175,7 +175,7 @@ export default function ReportsAnalytics() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600 mt-1">Metrics and saved report configurations calculated from live records.</p>
+          <p className="text-gray-600 mt-1">Metrics and saved report configurations calculated from records.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={exportCurrentReport} aria-label="Export Analytics" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
@@ -204,7 +204,7 @@ export default function ReportsAnalytics() {
               <p className="text-3xl font-bold text-gray-900 mt-2">{metric.value}</p>
               <p className="text-sm text-slate-600 mt-2 flex items-center gap-1">
                 <TrendingUp className="w-4 h-4" />
-                Live count
+                Current count
               </p>
             </CardContent>
           </Card>

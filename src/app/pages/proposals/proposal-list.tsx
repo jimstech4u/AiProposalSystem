@@ -82,7 +82,7 @@ export default function ProposalList() {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Proposals</h1>
-          <p className="text-gray-600 mt-1">Live proposal records</p>
+          <p className="text-gray-600 mt-1">Proposal records</p>
         </div>
         {canCreate && (
           <Link to="/proposals/new" aria-label="New Proposal" className="shrink-0">

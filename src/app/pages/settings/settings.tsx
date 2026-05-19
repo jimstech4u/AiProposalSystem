@@ -133,7 +133,7 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-4xl p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600">Manage live user preferences.</p>
+        <p className="text-gray-600">Manage user preferences.</p>
       </div>
 
       {loading ? (

@@ -10,7 +10,7 @@ export default function ProjectManagerDashboard() {
     <div className="space-y-6 p-4 sm:p-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Project Manager Dashboard</h1>
-        <p className="text-gray-600 mt-1">Live project progress and proposal workload.</p>
+        <p className="text-gray-600 mt-1">Project progress and proposal workload.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

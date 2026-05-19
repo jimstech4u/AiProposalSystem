@@ -12,7 +12,7 @@ export default function EngineerDashboard() {
     <div className="space-y-6 p-4 sm:p-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Engineer Dashboard</h1>
-        <p className="text-gray-600 mt-1">Live project and proposal activity.</p>
+        <p className="text-gray-600 mt-1">Project and proposal activity.</p>
       </div>
 
       <Card>

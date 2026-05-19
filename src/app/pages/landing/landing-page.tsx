@@ -99,7 +99,7 @@ export default function LandingPage() {
                   <img src="/favicon.svg" alt="" className="h-10 w-10 rounded-lg" />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-white">Proposal Workspace</p>
-                    <p className="text-xs text-slate-400">Live workflow preview</p>
+                    <p className="text-xs text-slate-400">Workflow preview</p>
                   </div>
                 </div>
                 <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Ready</span>

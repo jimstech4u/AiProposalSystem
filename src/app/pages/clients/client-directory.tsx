@@ -144,7 +144,7 @@ export default function ClientDirectory() {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Client Directory</h1>
-          <p className="text-gray-600 mt-1">Live client records</p>
+          <p className="text-gray-600 mt-1">Client records</p>
         </div>
         {canCreate && (
           <Button onClick={openCreate} aria-label="New Client" className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
