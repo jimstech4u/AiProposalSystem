@@ -144,7 +144,7 @@ export default function ClientDirectory() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Client Directory</h1>
-          <p className="text-gray-600 mt-1">Live client records from Supabase</p>
+          <p className="text-gray-600 mt-1">Live client records</p>
         </div>
         {canCreate && (
           <Button onClick={openCreate}>
@@ -199,7 +199,7 @@ export default function ClientDirectory() {
           <CardContent className="pt-6 text-center">
             <Building2 className="mx-auto h-10 w-10 text-gray-400" />
             <h2 className="mt-3 font-semibold text-gray-900">No clients found</h2>
-            <p className="mt-1 text-sm text-gray-600">Create client records in Supabase or through the requirement intake flow.</p>
+            <p className="mt-1 text-sm text-gray-600">Create client records here or through the requirement intake flow.</p>
           </CardContent>
         </Card>
       ) : (

@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { toast } from 'sonner';
 import { getUserProfile, signUpWithPassword, verifyEmailOtp, type AppRole } from '../../../lib/supabase';
+import { AuthBrand } from '../../components/auth-brand';
 
 type RegisterPageProps = {
   onLogin: (role: AppRole, accessToken?: string, email?: string, userId?: string) => void;
@@ -49,9 +50,9 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
       }
 
       setAwaitingCode(true);
-      toast.success('Account created. Enter the six-digit Supabase verification code sent to your email.');
+      toast.success('Account created. Enter the six-digit verification code sent to your email.');
     } catch (error) {
-      toast.error('Registration could not be completed. Check Supabase Auth settings and network access.');
+      toast.error('Registration could not be completed. Check authentication settings and network access.');
       console.error(error);
     } finally {
       setSubmitting(false);
@@ -61,7 +62,7 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
   const handleVerify = async (event: React.FormEvent) => {
     event.preventDefault();
     if (verificationCode.trim().length !== 6) {
-      toast.error('Enter the six-digit verification code from Supabase.');
+      toast.error('Enter the six-digit verification code.');
       return;
     }
 
@@ -87,8 +88,8 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
-          <img src="/logo.svg" alt="ProposalAI" className="mx-auto h-14 w-auto" />
-          <h1 className="text-3xl font-bold text-gray-900">Create Your Account</h1>
+          <AuthBrand />
+          <h1 className="mt-5 text-3xl font-bold text-gray-900">Create Your Account</h1>
           <p className="text-gray-600 mt-2">Join ProposalAI to streamline your workflow</p>
         </div>
 
@@ -98,7 +99,7 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Verify your email</h2>
                 <p className="mt-1 text-sm text-gray-600">
-                  Supabase sent a six-digit code to {form.email}. Enter it to activate your account.
+                  A six-digit code was sent to {form.email}. Enter it to activate your account.
                 </p>
               </div>
               <div>

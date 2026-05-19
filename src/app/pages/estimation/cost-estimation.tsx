@@ -22,6 +22,7 @@ import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
+import { formatCurrency } from '../../../lib/format';
 
 export default function CostEstimation() {
   const latestAnalysis = readJson<any>('latestAnalysis', null);
@@ -40,9 +41,9 @@ export default function CostEstimation() {
     downloadTextFile(
       'cost-estimation-report.txt',
       toReport('AI Cost Estimation Report', [
-        { heading: 'Total Estimated Cost', body: `$${totalCost.toLocaleString()}` },
-        { heading: 'Module Breakdown', body: moduleData.map((item) => `- ${item.name}: ${item.hours} hours at $${item.rate}/hr = $${item.cost}`).join('\n') },
-        { heading: 'Cost Distribution', body: costBreakdown.map((item) => `- ${item.name}: $${item.value}`).join('\n') },
+        { heading: 'Total Estimated Cost', body: formatCurrency(totalCost) },
+        { heading: 'Module Breakdown', body: moduleData.map((item) => `- ${item.name}: ${item.hours} hours at ${formatCurrency(item.rate)}/hr = ${formatCurrency(item.cost)}`).join('\n') },
+        { heading: 'Cost Distribution', body: costBreakdown.map((item) => `- ${item.name}: ${formatCurrency(item.value)}`).join('\n') },
       ])
     );
   };
@@ -65,6 +66,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
         const [estimate] = await insertRow('cost_estimations', {
           project_id: projectId,
           created_by: session?.userId ?? null,
+          currency: 'NGN',
           development_cost: developmentCost,
           infrastructure_cost: infrastructure,
           third_party_cost: thirdParty,
@@ -126,7 +128,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
             <div className="text-center">
               <p className="text-sm text-gray-600">Total Estimated Cost</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
-                ${totalCost.toLocaleString()}
+                {formatCurrency(totalCost)}
               </p>
               <p className="text-xs text-gray-500 mt-2">Generated from current analysis</p>
               <div className="mt-3">
@@ -154,7 +156,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
           <CardContent className="pt-6">
             <div>
               <p className="text-sm text-gray-600">Avg Cost per Module</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">${Math.round(avgModuleCost).toLocaleString()}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(Math.round(avgModuleCost))}</p>
               <p className="text-sm text-gray-600 mt-2">{moduleData.length} modules</p>
             </div>
           </CardContent>
@@ -197,7 +199,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -214,7 +216,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                 <YAxis />
-                <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Bar dataKey="cost" fill="#3b82f6" />
               </BarChart>
             </ResponsiveContainer>
@@ -258,9 +260,9 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
                       </Badge>
                     </td>
                     <td className="text-right py-3 px-4 text-gray-700">{module.hours} hrs</td>
-                    <td className="text-right py-3 px-4 text-gray-700">${module.rate}/hr</td>
+                    <td className="text-right py-3 px-4 text-gray-700">{formatCurrency(module.rate)}/hr</td>
                     <td className="text-right py-3 px-4 font-medium text-gray-900">
-                      ${module.cost.toLocaleString()}
+                      {formatCurrency(module.cost)}
                     </td>
                     <td className="text-center py-3 px-4">
                       <div className="flex items-center justify-center gap-1">
@@ -278,7 +280,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
                   </td>
                   <td className="py-3 px-4"></td>
                   <td className="text-right py-3 px-4">
-                    ${moduleData.reduce((sum, m) => sum + m.cost, 0).toLocaleString()}
+                    {formatCurrency(moduleData.reduce((sum, m) => sum + m.cost, 0))}
                   </td>
                   <td className="py-3 px-4"></td>
                 </tr>

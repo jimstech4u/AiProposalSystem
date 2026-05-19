@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { toast } from 'sonner';
 import { requestPasswordRecovery, updateUserPassword, verifyEmailOtp } from '../../../lib/supabase';
+import { AuthBrand } from '../../components/auth-brand';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ export default function ForgotPasswordPage() {
     try {
       await requestPasswordRecovery(email);
       setStep('code');
-      toast.success('Supabase sent a six-digit password recovery code.');
+      toast.success('A six-digit password recovery code was sent.');
     } catch (error) {
       toast.error('Unable to send the password recovery code.');
       console.warn(error);
@@ -62,6 +63,9 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <AuthBrand />
+        </div>
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>

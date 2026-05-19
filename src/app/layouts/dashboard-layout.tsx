@@ -28,6 +28,8 @@ import {
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { getStoredTheme, setStoredTheme, type ThemeMode } from '../../lib/theme';
+import { selectRows, updateRows } from '../../lib/supabase';
+import { getStoredSession } from '../../lib/permissions';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -38,7 +40,7 @@ interface DashboardLayoutProps {
 
 const navigationItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['engineer', 'project-manager', 'sales', 'admin'] },
-  { icon: Plus, label: 'New Proposal', path: '/requirements/new', variant: 'primary', roles: ['engineer', 'project-manager', 'sales'] },
+  { icon: Plus, label: 'New Proposal', path: '/proposals/new', variant: 'primary', roles: ['engineer', 'project-manager', 'sales'] },
   { icon: FileText, label: 'Requirements', path: '/requirements/new', roles: ['engineer', 'project-manager', 'sales'] },
   { icon: FileText, label: 'Proposals', path: '/proposals', roles: ['engineer', 'project-manager', 'sales', 'admin'] },
   { icon: CheckCircle, label: 'Proposal Review', path: '/proposals/review', roles: ['project-manager', 'admin'] },
@@ -57,10 +59,13 @@ const navigationItems = [
 export default function DashboardLayout({ children, userRole, email, onLogout }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; read_at?: string | null; created_at: string }>>([]);
   const [theme, setTheme] = useState<ThemeMode>(() => getStoredTheme());
   const location = useLocation();
   const displayEmail = email ?? 'user@company.com';
   const initials = displayEmail.slice(0, 2).toUpperCase();
+  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
   const getRoleName = (role: string) => {
     switch (role) {
@@ -80,6 +85,25 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
     window.addEventListener('proposalai:theme-change', syncTheme);
     return () => window.removeEventListener('proposalai:theme-change', syncTheme);
   }, []);
+
+  useEffect(() => {
+    async function loadNotifications() {
+      const session = getStoredSession();
+      if (!session?.userId) return;
+
+      try {
+        const rows = await selectRows<{ id: string; title: string; message: string; read_at?: string | null; created_at: string }>(
+          'notifications',
+          `select=id,title,message,read_at,created_at&user_id=eq.${session.userId}&order=created_at.desc&limit=8`
+        );
+        setNotifications(rows);
+      } catch (error) {
+        console.warn('Unable to load notifications:', error);
+      }
+    }
+
+    loadNotifications();
+  }, [location.pathname]);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -188,10 +212,58 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
               {theme === 'dark' ? <Sun className="w-5 h-5 text-gray-600" /> : <Moon className="w-5 h-5 text-gray-600" />}
             </button>
             {/* Notifications */}
-            <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => setNotificationsOpen((current) => !current)}
+                aria-label="Open notifications"
+              >
+                <Bell className="w-5 h-5 text-gray-600" />
+                {unreadCount > 0 && <span className="absolute top-1 right-1 min-h-2 min-w-2 rounded-full bg-red-500" />}
+              </button>
+              {notificationsOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
+                  <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                          onClick={async () => {
+                            const unread = notifications.filter((notification) => !notification.read_at);
+                            await Promise.all(unread.map((notification) => updateRows('notifications', `id=eq.${notification.id}`, { read_at: new Date().toISOString() })));
+                            setNotifications((current) => current.map((notification) => ({ ...notification, read_at: notification.read_at ?? new Date().toISOString() })));
+                          }}
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-96 overflow-y-auto py-1">
+                      {notifications.length === 0 ? (
+                        <p className="px-4 py-6 text-center text-sm text-gray-600">No notifications yet.</p>
+                      ) : (
+                        notifications.map((notification) => (
+                          <div key={notification.id} className="border-b border-gray-100 px-4 py-3 last:border-0">
+                            <div className="flex items-start gap-2">
+                              {!notification.read_at && <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-600" />}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                                <p className="mt-1 text-xs text-gray-600">{notification.message}</p>
+                                <p className="mt-1 text-xs text-gray-500">{new Date(notification.created_at).toLocaleString()}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* User Menu */}
             <div className="relative">

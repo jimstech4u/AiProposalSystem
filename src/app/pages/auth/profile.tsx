@@ -72,7 +72,7 @@ export default function ProfilePage() {
           });
         }
       } catch (error) {
-        toast.error('Unable to load your profile from Supabase.');
+        toast.error('Unable to load your profile.');
         console.warn(error);
       } finally {
         setLoading(false);
@@ -88,7 +88,7 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!profileId) {
-      toast.error('Profile cannot be updated until your Supabase session is loaded.');
+      toast.error('Profile cannot be updated until your session is loaded.');
       return;
     }
 

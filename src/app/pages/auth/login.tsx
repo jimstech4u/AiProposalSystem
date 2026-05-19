@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/input';
 import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { getUserProfile, signInWithPassword, type AppRole } from '../../../lib/supabase';
+import { AuthBrand } from '../../components/auth-brand';
 
 interface LoginPageProps {
   onLogin: (role: AppRole, accessToken?: string, email?: string, userId?: string) => void;
@@ -31,7 +32,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       onLogin(profile?.role ?? metadataRole ?? 'engineer', session.access_token, session.user.email ?? email, session.user.id);
       toast.success('Signed in successfully');
     } catch (error) {
-      toast.error('Sign in failed. Check your Supabase account email and password.');
+      toast.error('Sign in failed. Check your email and password.');
       console.warn(error);
     } finally {
       setSubmitting(false);
@@ -43,7 +44,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       <div className="w-full max-w-md">
         {/* Logo and Branding */}
         <div className="text-center mb-8">
-          <img src="/logo.svg" alt="ProposalAI" className="mx-auto h-14 w-auto" />
+          <AuthBrand />
           <p className="text-gray-600 mt-3">Technical proposals, estimates, and project records</p>
         </div>
 

@@ -6,6 +6,7 @@ import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supa
 import { can, getStoredRole, getStoredSession } from '../../../lib/permissions';
 import { getStoredTheme, setStoredTheme, type ThemeMode } from '../../../lib/theme';
 import { toast } from 'sonner';
+import { supportedLocales } from '../../../lib/format';
 
 type SettingsRow = {
   id: string;
@@ -17,10 +18,17 @@ type SettingsRow = {
   timezone?: string | null;
 };
 
+function normalizeLocale(language: string) {
+  if (supportedLocales.some((locale) => locale.code === language)) return language;
+  if (language.toLowerCase().startsWith('french')) return 'fr-FR';
+  if (language.toLowerCase().startsWith('yoruba')) return 'yo-NG';
+  return 'en-NG';
+}
+
 const emptySettings = {
   email_notifications: true,
   proposal_updates: true,
-  language: 'English',
+  language: 'en-NG',
   theme: getStoredTheme(),
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 };
@@ -49,7 +57,7 @@ export default function SettingsPage() {
           setSettings({
             email_notifications: row.email_notifications,
             proposal_updates: row.proposal_updates,
-            language: row.language,
+            language: normalizeLocale(row.language),
             theme: row.theme,
             timezone: row.timezone ?? emptySettings.timezone,
           });
@@ -96,7 +104,7 @@ export default function SettingsPage() {
       }
       toast.success('Settings saved.');
     } catch (error) {
-      toast.error('Settings save failed. Apply the updated Supabase schema if this table is missing.');
+      toast.error('Settings save failed. Apply the updated database schema if this table is missing.');
       console.warn(error);
     } finally {
       setSaving(false);
@@ -125,7 +133,7 @@ export default function SettingsPage() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600">Manage live user preferences stored in Supabase.</p>
+        <p className="text-gray-600">Manage live user preferences.</p>
       </div>
 
       {loading ? (
@@ -154,7 +162,7 @@ export default function SettingsPage() {
               <Shield className="w-5 h-5 text-blue-600" />
               <h2 className="font-semibold">Security</h2>
             </div>
-            <p className="text-sm text-gray-600">Password recovery uses the Supabase six-digit email code flow from the forgot-password page.</p>
+            <p className="text-sm text-gray-600">Password recovery uses the six-digit email code flow from the forgot-password page.</p>
           </Card>
 
           <Card className="p-6">
@@ -166,9 +174,9 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">Language</label>
                 <select value={settings.language} onChange={(event) => update('language', event.target.value)} disabled={!canUpdate} className="w-full rounded-lg border px-3 py-2">
-                  <option>English</option>
-                  <option>French</option>
-                  <option>Yoruba</option>
+                  {supportedLocales.map((locale) => (
+                    <option key={locale.code} value={locale.code}>{locale.label}</option>
+                  ))}
                 </select>
               </div>
               <div>

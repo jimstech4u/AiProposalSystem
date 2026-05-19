@@ -82,7 +82,7 @@ export default function ProposalList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Proposals</h1>
-          <p className="text-gray-600 mt-1">Live proposal records from Supabase</p>
+          <p className="text-gray-600 mt-1">Live proposal records</p>
         </div>
         {canCreate && (
           <Link to="/proposals/new">

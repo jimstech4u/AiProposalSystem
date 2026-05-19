@@ -158,7 +158,7 @@ export default function ReportsAnalytics() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600 mt-1">Metrics and saved report configurations calculated from Supabase records.</p>
+          <p className="text-gray-600 mt-1">Metrics and saved report configurations calculated from live records.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={exportCurrentReport}>

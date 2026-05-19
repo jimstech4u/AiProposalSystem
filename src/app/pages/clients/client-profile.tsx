@@ -46,7 +46,7 @@ export default function ClientProfile() {
   }
 
   if (!client) {
-    return <div className="p-6 text-sm text-gray-600">Client record was not found in Supabase.</div>;
+    return <div className="p-6 text-sm text-gray-600">Client record was not found.</div>;
   }
 
   return (

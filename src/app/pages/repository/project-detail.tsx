@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { selectRows } from '../../../lib/supabase';
+import { formatCurrency } from '../../../lib/format';
 
 type RepositoryRow = {
   id: string;
@@ -40,7 +41,7 @@ export default function ProjectDetail() {
   }, [id]);
 
   if (loading) return <div className="p-6 text-sm text-gray-600">Loading project record...</div>;
-  if (!project) return <div className="p-6 text-sm text-gray-600">Project record was not found in Supabase.</div>;
+  if (!project) return <div className="p-6 text-sm text-gray-600">Project record was not found.</div>;
 
   const variance =
     project.estimated_cost && project.actual_cost
@@ -58,13 +59,13 @@ export default function ProjectDetail() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-gray-600">Estimated Cost</p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">${Number(project.estimated_cost || 0).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(project.estimated_cost)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-gray-600">Actual Cost</p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">{project.actual_cost == null ? 'Not recorded' : `$${Number(project.actual_cost).toLocaleString()}`}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-2">{project.actual_cost == null ? 'Not recorded' : formatCurrency(project.actual_cost)}</p>
           </CardContent>
         </Card>
         <Card>

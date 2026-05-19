@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Pencil, Plug, Plus, Settings, Trash2, X, XCircle } from 'lucide-react';
+import { CheckCircle, Plug, Plus, Settings, Trash2, X, XCircle, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -23,7 +23,7 @@ const emptyForm = {
   category: 'CRM',
   status: 'disconnected' as IntegrationRow['status'],
   sync_schedule: '',
-  config: '{\n  "endpoint": "",\n  "api_key_reference": ""\n}',
+  config: '{\n  "endpoint": "",\n  "api_key_reference": "",\n  "api_key": ""\n}',
 };
 
 function parseConfig(config: string) {
@@ -130,6 +130,38 @@ export default function IntegrationsPage() {
     }
   };
 
+  const testConnection = async (integration: IntegrationRow) => {
+    const config = integration.config ?? {};
+    const endpoint = String(config.endpoint ?? '').trim();
+
+    if (!endpoint) {
+      toast.error('Add an endpoint URL before testing this integration.');
+      return;
+    }
+
+    try {
+      await updateRows('integrations', `id=eq.${integration.id}`, { status: 'syncing' });
+      setIntegrations((current) => current.map((item) => item.id === integration.id ? { ...item, status: 'syncing' } : item));
+      const token = String(config.api_key ?? config.token ?? '').trim();
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const nextStatus = response.ok ? 'connected' : 'error';
+      await updateRows('integrations', `id=eq.${integration.id}`, {
+        status: nextStatus,
+        last_sync_at: new Date().toISOString(),
+      });
+      toast[response.ok ? 'success' : 'error'](response.ok ? 'Connection test passed.' : `Connection test failed with HTTP ${response.status}.`);
+      await loadIntegrations();
+    } catch (error) {
+      await updateRows('integrations', `id=eq.${integration.id}`, { status: 'error' }).catch(() => undefined);
+      setIntegrations((current) => current.map((item) => item.id === integration.id ? { ...item, status: 'error' } : item));
+      toast.error('Connection test failed. Check the endpoint, credentials, and CORS settings.');
+      console.warn(error);
+    }
+  };
+
   const deleteIntegration = async (integration: IntegrationRow) => {
     if (!window.confirm(`Delete ${integration.provider} integration?`)) return;
     try {
@@ -147,7 +179,7 @@ export default function IntegrationsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Integrations & API</h1>
-          <p className="text-gray-600 mt-1">Manage real integration records stored in Supabase.</p>
+          <p className="text-gray-600 mt-1">Manage real integration records and connection settings.</p>
         </div>
         {canCreate && (
           <Button onClick={openCreate}>
@@ -227,8 +259,8 @@ export default function IntegrationsPage() {
                   </Button>
                 )}
                 {canUpdate && (
-                  <Button variant="outline" size="sm" onClick={() => updateStatus(integration, 'connected')}>
-                    <Pencil className="w-4 h-4" />
+                  <Button variant="outline" size="sm" onClick={() => testConnection(integration)}>
+                    <RefreshCw className="w-4 h-4" />
                   </Button>
                 )}
                 {canDelete && (

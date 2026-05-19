@@ -28,6 +28,8 @@ drop table if exists public.user_profiles cascade;
 
 drop function if exists public.handle_new_user() cascade;
 drop function if exists public.write_audit_log() cascade;
+drop function if exists public.create_notification() cascade;
+drop function if exists public.notify_proposal_review() cascade;
 drop function if exists public.touch_updated_at() cascade;
 drop function if exists public.current_app_role() cascade;
 drop function if exists public.is_admin() cascade;
@@ -213,7 +215,7 @@ create table if not exists public.cost_estimations (
   project_id uuid not null references public.projects(id) on delete cascade,
   proposal_id uuid references public.proposals(id) on delete set null,
   created_by uuid references public.user_profiles(id) on delete set null,
-  currency text not null default 'USD',
+  currency text not null default 'NGN',
   development_cost numeric(14,2) not null default 0,
   infrastructure_cost numeric(14,2) not null default 0,
   third_party_cost numeric(14,2) not null default 0,
@@ -338,7 +340,7 @@ create table if not exists public.user_settings (
   user_id uuid not null unique references public.user_profiles(id) on delete cascade,
   email_notifications boolean not null default true,
   proposal_updates boolean not null default true,
-  language text not null default 'English',
+  language text not null default 'en-NG',
   theme text not null default 'light' check (theme in ('light', 'dark')),
   timezone text,
   created_at timestamptz not null default now(),
@@ -692,7 +694,8 @@ create policy "settings_own_or_admin" on public.user_settings
   with check (user_id = auth.uid() or public.is_admin());
 
 create policy "notifications_own_or_admin" on public.notifications
-  for all using (user_id = auth.uid() or public.is_admin());
+  for all using (user_id = auth.uid() or public.is_admin())
+  with check (user_id = auth.uid() or public.is_admin());
 
 create policy "admin_read_audit_logs" on public.audit_logs
   for select using (public.is_admin());
@@ -731,6 +734,55 @@ begin
 end;
 $$;
 
+create or replace function public.create_notification(
+  target_user_id uuid,
+  notification_title text,
+  notification_message text,
+  notification_type text default 'info',
+  notification_entity_type text default null,
+  notification_entity_id uuid default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if target_user_id is null then
+    return;
+  end if;
+
+  insert into public.notifications (user_id, title, message, type, entity_type, entity_id)
+  values (target_user_id, notification_title, notification_message, notification_type, notification_entity_type, notification_entity_id);
+end;
+$$;
+
+create or replace function public.notify_proposal_review()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  owner_id uuid;
+begin
+  select created_by into owner_id
+  from public.proposals
+  where id = new.proposal_id;
+
+  perform public.create_notification(
+    owner_id,
+    'Proposal review updated',
+    'A proposal review decision was recorded.',
+    case when new.decision = 'approved' then 'success' when new.decision = 'rejected' then 'warning' else 'info' end,
+    'proposal',
+    new.proposal_id
+  );
+
+  return new;
+end;
+$$;
+
 drop trigger if exists audit_clients_changes on public.clients;
 create trigger audit_clients_changes
 after insert or update or delete on public.clients
@@ -755,6 +807,11 @@ drop trigger if exists audit_proposal_reviews_changes on public.proposal_reviews
 create trigger audit_proposal_reviews_changes
 after insert or update or delete on public.proposal_reviews
 for each row execute function public.write_audit_log();
+
+drop trigger if exists notify_proposal_review_changes on public.proposal_reviews;
+create trigger notify_proposal_review_changes
+after insert or update on public.proposal_reviews
+for each row execute function public.notify_proposal_review();
 
 drop trigger if exists audit_cost_estimations_changes on public.cost_estimations;
 create trigger audit_cost_estimations_changes

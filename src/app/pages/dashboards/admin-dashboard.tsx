@@ -2,14 +2,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Badge } from '../../components/ui/badge';
 import { Server, Users, Database, Activity, CheckCircle2 } from 'lucide-react';
 import { useDashboardData } from './use-dashboard-data';
+import { appConfig } from '../../../lib/config';
 
 export default function AdminDashboard() {
-  const { stats, projects, proposals, clients, loading } = useDashboardData();
+  const { stats, projects, proposals, clients, integrations, loading, health } = useDashboardData();
+  const backendEnvReady = Boolean(appConfig.supabaseUrl && appConfig.supabaseRestUrl && appConfig.supabaseAnonKey);
+  const backendConnected = Object.values(health).some((status) => status === 'ok');
+  const totalRecords = projects.length + proposals.length + clients.length;
+  const connectedApiCount = integrations.filter((integration) => integration.status === 'connected').length;
   const systemHealth = [
-    { name: 'Supabase API', status: 'Configured', icon: Server },
-    { name: 'Database', status: 'RLS Enabled', icon: Database },
-    { name: 'Gemini Integration', status: 'Configured', icon: Activity },
-    { name: 'Authentication', status: 'Active', icon: CheckCircle2 },
+    {
+      name: 'Backend API',
+      status: loading ? 'Checking' : !backendEnvReady ? 'Missing env' : backendConnected ? 'Connected' : 'Connection issue',
+      variant: loading ? 'warning' : !backendEnvReady || !backendConnected ? 'danger' : 'success',
+      icon: Server,
+    },
+    {
+      name: 'Database Records',
+      status: loading ? 'Checking' : totalRecords > 0 ? `${totalRecords} records` : 'Empty',
+      variant: loading || totalRecords === 0 ? 'warning' : 'success',
+      icon: Database,
+    },
+    {
+      name: 'Gemini Integration',
+      status: appConfig.geminiApiKey ? 'Not tested' : 'Missing env',
+      variant: appConfig.geminiApiKey ? 'warning' : 'danger',
+      icon: Activity,
+    },
+    {
+      name: 'Connected APIs',
+      status: loading ? 'Checking' : connectedApiCount > 0 ? `${connectedApiCount} active` : 'None',
+      variant: loading || connectedApiCount === 0 ? 'warning' : 'success',
+      icon: CheckCircle2,
+    },
   ];
 
   return (
@@ -31,7 +56,7 @@ export default function AdminDashboard() {
                 <div key={system.name} className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <div className="flex items-start justify-between mb-3">
                     <Icon className="w-6 h-6 text-slate-700" />
-                    <Badge variant="success">{system.status}</Badge>
+                    <Badge variant={system.variant as 'success' | 'warning' | 'danger'}>{system.status}</Badge>
                   </div>
                   <p className="font-medium text-gray-900">{system.name}</p>
                 </div>

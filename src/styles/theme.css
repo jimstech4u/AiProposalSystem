@@ -196,6 +196,17 @@
     background-color: #1f2937;
   }
 
+  .dark .bg-blue-50,
+  .dark .bg-purple-50,
+  .dark .bg-indigo-50,
+  .dark .bg-green-50,
+  .dark .bg-red-50,
+  .dark .bg-yellow-50,
+  .dark .bg-orange-50,
+  .dark .bg-sky-50 {
+    background-color: #172033;
+  }
+
   .dark .text-gray-900,
   .dark .text-slate-950,
   .dark .text-slate-900 {
@@ -213,10 +224,23 @@
     color: #94a3b8;
   }
 
+  .dark .text-blue-700,
+  .dark .text-blue-600,
+  .dark .text-purple-700,
+  .dark .text-purple-600,
+  .dark .text-sky-700,
+  .dark .text-green-700,
+  .dark .text-red-700 {
+    color: #bae6fd;
+  }
+
   .dark .border-gray-100,
   .dark .border-gray-200,
   .dark .border-gray-300,
-  .dark .border-slate-200 {
+  .dark .border-slate-200,
+  .dark .border-blue-200,
+  .dark .border-purple-100,
+  .dark .border-purple-200 {
     border-color: #334155;
   }
 

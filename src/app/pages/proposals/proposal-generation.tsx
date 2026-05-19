@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Sparkles, Save, Download, Eye, FileText } from 'lucide-react';
+import { Sparkles, Save, Download, FileText, ClipboardCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
@@ -39,6 +39,23 @@ type ProposalRow = {
   generated_content?: ProposalContent | null;
 };
 
+type ClientRow = {
+  id: string;
+  company_name: string;
+  contact_name?: string | null;
+  industry?: string | null;
+};
+
+type ProjectRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  project_type?: string | null;
+  requirements_text?: string | null;
+  client_id?: string | null;
+  clients?: { company_name?: string | null } | null;
+};
+
 function defaultContent(projectName: string, clientName: string): ProposalContent {
   return {
     executive: `${clientName} requires a dependable software solution for ${projectName}. This proposal presents a practical delivery approach, the recommended technology direction, core project modules, estimated delivery structure, assumptions, and acceptance criteria.`,
@@ -49,18 +66,51 @@ function defaultContent(projectName: string, clientName: string): ProposalConten
 export default function ProposalGeneration() {
   const { id } = useParams();
   const latestAnalysis = readJson<any>('latestAnalysis', null);
-  const project = latestAnalysis?.project ?? { name: 'Untitled Project', client: 'Client not selected' };
+  const analysisProject = latestAnalysis?.project ?? { name: 'Untitled Project', client: 'Client not selected' };
   const [projectId, setProjectId] = useState(readJson<string | null>('latestProjectId', null));
+  const [clients, setClients] = useState<ClientRow[]>([]);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
   const storedProposal = readJson<ProposalContent | null>('latestProposal', null);
   const [proposalId, setProposalId] = useState(id && id !== 'new' ? id : '');
-  const [proposalTitle, setProposalTitle] = useState(`${project.name} Proposal`);
+  const [proposalTitle, setProposalTitle] = useState(`${analysisProject.name} Proposal`);
   const [generating, setGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState('executive');
   const [tone, setTone] = useState('Professional & Formal');
   const [detailLevel, setDetailLevel] = useState('Comprehensive');
-  const [content, setContent] = useState<ProposalContent>(() => storedProposal ?? defaultContent(project.name, project.client));
+  const [content, setContent] = useState<ProposalContent>(() => storedProposal ?? defaultContent(analysisProject.name, analysisProject.client));
 
   const activeSectionName = useMemo(() => sections.find((section) => section.id === activeSection)?.name ?? 'Section', [activeSection]);
+  const selectedProject = useMemo(() => projects.find((item) => item.id === projectId), [projectId, projects]);
+  const selectedClient = useMemo(() => clients.find((client) => client.id === selectedClientId), [clients, selectedClientId]);
+  const project = useMemo(
+    () => ({
+      name: selectedProject?.title ?? analysisProject.name,
+      client: selectedClient?.company_name ?? selectedProject?.clients?.company_name ?? analysisProject.client,
+      description: selectedProject?.description ?? latestAnalysis?.project?.description,
+      requirements: selectedProject?.requirements_text ?? latestAnalysis,
+    }),
+    [analysisProject.client, analysisProject.name, latestAnalysis, selectedClient?.company_name, selectedProject]
+  );
+
+  useEffect(() => {
+    async function loadProposalSources() {
+      try {
+        const [clientRows, projectRows] = await Promise.all([
+          selectRows<ClientRow>('clients', 'select=id,company_name,contact_name,industry&order=company_name.asc'),
+          selectRows<ProjectRow>('projects', 'select=id,title,description,project_type,requirements_text,client_id,clients(company_name)&order=created_at.desc'),
+        ]);
+        setClients(clientRows);
+        setProjects(projectRows);
+        const matchingProject = projectId ? projectRows.find((row) => row.id === projectId) : undefined;
+        if (matchingProject?.client_id) setSelectedClientId(matchingProject.client_id);
+      } catch (error) {
+        console.warn('Unable to load proposal source data:', error);
+      }
+    }
+
+    loadProposalSources();
+  }, [projectId]);
 
   useEffect(() => {
     async function loadProposal() {
@@ -80,7 +130,7 @@ export default function ProposalGeneration() {
           architecture: row.generated_content?.architecture ?? row.architecture_description ?? '',
         });
       } catch (error) {
-        toast.error('Unable to load proposal from Supabase.');
+        toast.error('Unable to load proposal.');
         console.warn(error);
       }
     }
@@ -114,7 +164,7 @@ export default function ProposalGeneration() {
         if (saved?.id) setProposalId(saved.id);
       }
     } catch (error) {
-      console.warn('Supabase proposal persistence skipped:', error);
+      console.warn('Proposal persistence skipped:', error);
     }
   };
 
@@ -166,13 +216,13 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
     }
   };
 
-  const handleExport = (format: 'pdf' | 'docx') => {
+  const handleExport = () => {
     const report = toReport(
       `${project.name} Technical Proposal`,
       sections.map((section) => ({ heading: section.name, body: content[section.id] ?? 'Pending generation.' }))
     );
-    downloadTextFile(`${project.name || 'proposal'}.${format === 'docx' ? 'doc' : 'txt'}`, report, format === 'docx' ? 'application/msword' : 'text/plain');
-    toast.success(`Proposal exported as ${format.toUpperCase()}.`);
+    downloadTextFile(`${project.name || 'proposal'}.doc`, report, 'application/msword');
+    toast.success('Proposal exported.');
   };
 
   return (
@@ -189,22 +239,63 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
               <p className="text-sm text-gray-600 mt-2">For {project.client} - Gemini-assisted draft</p>
             </div>
             <div className="flex flex-wrap gap-2 flex-shrink-0">
-              <Button variant="outline" size="sm">
-                <Eye className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleExport('pdf')}>
+              <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleExport('docx')}>
-                <FileText className="w-4 h-4" />
+                Export
               </Button>
               <Button variant="primary" size="sm" onClick={() => saveProposal().then(() => toast.success('Proposal saved.'))}>
                 <Save className="w-4 h-4" />
+                Save
               </Button>
             </div>
           </div>
 
-          <Card className="border-2 border-purple-100 bg-gradient-to-r from-purple-50 to-indigo-50">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <ClipboardCheck className="h-5 w-5 text-blue-600" />
+                Proposal Intake
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Client</label>
+                <select
+                  value={selectedClientId}
+                  onChange={(event) => setSelectedClientId(event.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Use analysis client</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>{client.company_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Requirements Analysis</label>
+                <select
+                  value={projectId ?? ''}
+                  onChange={(event) => setProjectId(event.target.value || null)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Use latest analysis</option>
+                  {projects.map((item) => (
+                    <option key={item.id} value={item.id}>{item.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Link to="/requirements/new" className="w-full">
+                  <Button variant="outline" className="w-full">
+                    <FileText className="h-4 w-4" />
+                    New Analysis
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-purple-200 bg-white">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-xl">
                 <Sparkles className="w-6 h-6 text-purple-600" />

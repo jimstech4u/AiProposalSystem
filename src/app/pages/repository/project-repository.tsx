@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole } from '../../../lib/permissions';
 import { toast } from 'sonner';
+import { formatCurrency } from '../../../lib/format';
 
 type RepositoryRow = {
   id: string;
@@ -146,7 +147,7 @@ export default function ProjectRepository() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Project Repository</h1>
-          <p className="text-gray-600 mt-1">Historical project records from Supabase</p>
+          <p className="text-gray-600 mt-1">Historical project records</p>
         </div>
         {canCreate && (
           <Button onClick={openCreate}>
@@ -172,7 +173,7 @@ export default function ProjectRepository() {
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-sm text-gray-600">Estimated Value</p>
-            <p className="text-3xl font-bold text-slate-900 mt-2">${totalEstimated.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-slate-900 mt-2">{formatCurrency(totalEstimated)}</p>
           </CardContent>
         </Card>
       </div>
@@ -200,7 +201,7 @@ export default function ProjectRepository() {
             <div className="py-10 text-center">
               <FolderOpen className="mx-auto h-10 w-10 text-gray-400" />
               <h2 className="mt-3 font-semibold text-gray-900">No repository records found</h2>
-              <p className="mt-1 text-sm text-gray-600">Archive completed projects into Supabase to use the repository.</p>
+              <p className="mt-1 text-sm text-gray-600">Archive completed projects to use the repository.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -228,9 +229,9 @@ export default function ProjectRepository() {
                       <td className="py-3 px-4">
                         <Badge variant="default">{project.project_type || 'Not set'}</Badge>
                       </td>
-                      <td className="text-right py-3 px-4 text-gray-700">${Number(project.estimated_cost || 0).toLocaleString()}</td>
+                      <td className="text-right py-3 px-4 text-gray-700">{formatCurrency(project.estimated_cost)}</td>
                       <td className="text-right py-3 px-4 text-gray-700">
-                        {project.actual_cost == null ? 'Not recorded' : `$${Number(project.actual_cost).toLocaleString()}`}
+                        {project.actual_cost == null ? 'Not recorded' : formatCurrency(project.actual_cost)}
                       </td>
                       <td className="text-center py-3 px-4 text-gray-700">
                         {project.actual_weeks ?? project.estimated_weeks ?? 'Not set'} weeks
@@ -282,7 +283,7 @@ export default function ProjectRepository() {
               </label>
               <label className="space-y-1 text-sm font-medium text-gray-700 md:col-span-2">
                 Technologies
-                <input value={form.technologies} onChange={(event) => setForm({ ...form, technologies: event.target.value })} placeholder="React, Supabase, PostgreSQL" className="w-full rounded-md border border-gray-300 px-3 py-2" />
+                <input value={form.technologies} onChange={(event) => setForm({ ...form, technologies: event.target.value })} placeholder="React, PostgreSQL, Node.js" className="w-full rounded-md border border-gray-300 px-3 py-2" />
               </label>
               <label className="space-y-1 text-sm font-medium text-gray-700">
                 Estimated Cost
