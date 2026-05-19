@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Sparkles, Download, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
+import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow } from '../../../lib/supabase';
@@ -71,7 +71,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
       }
       toast.success('Timeline recalculated with Gemini.');
     } catch (error) {
-      toast.warning('Gemini timeline recalculation failed; current timeline retained.');
+      toast.warning(`Timeline retained. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setCalculating(false);

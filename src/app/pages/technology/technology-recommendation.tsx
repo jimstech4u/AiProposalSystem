@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Check, Code, Database, Server, Cloud, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
+import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
@@ -56,7 +56,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
       }
       toast.success('Technology recommendation generated with Gemini.');
     } catch (error) {
-      toast.warning('Gemini technology recommendation failed; current stack retained.');
+      toast.warning(`Technology stack retained. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setGenerating(false);

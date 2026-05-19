@@ -209,6 +209,33 @@
     background-color: #172033;
   }
 
+  .dark .from-blue-50,
+  .dark .from-purple-50,
+  .dark .from-indigo-50,
+  .dark .from-green-50,
+  .dark .from-red-50,
+  .dark .from-yellow-50,
+  .dark .from-amber-50,
+  .dark .from-orange-50,
+  .dark .from-sky-50 {
+    --tw-gradient-from: #172033;
+    --tw-gradient-from-position: 0%;
+    --tw-gradient-to: rgb(23 32 51 / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+
+  .dark .to-blue-50,
+  .dark .to-purple-50,
+  .dark .to-indigo-50,
+  .dark .to-green-50,
+  .dark .to-red-50,
+  .dark .to-yellow-50,
+  .dark .to-amber-50,
+  .dark .to-orange-50,
+  .dark .to-sky-50 {
+    --tw-gradient-to: #0f172a;
+  }
+
   .dark .text-gray-900,
   .dark .text-slate-950,
   .dark .text-slate-900 {

@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
+import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, removeJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
@@ -61,6 +61,31 @@ function defaultContent(projectName: string, clientName: string): ProposalConten
   return {
     executive: `${clientName} requires a dependable software solution for ${projectName}. This proposal presents a practical delivery approach, the recommended technology direction, core project modules, estimated delivery structure, assumptions, and acceptance criteria.`,
     technical: 'The solution will use a modular architecture with a responsive web interface, secure API layer, relational database, role-based access control, structured logging, and automated testing across critical workflows.',
+  };
+}
+
+function buildLocalProposalContent(project: { name: string; client: string; description?: string }, latestAnalysis: any): ProposalContent {
+  const projectName = project.name || 'the proposed project';
+  const clientName = project.client || 'the client';
+  const requirements = (latestAnalysis?.requirements ?? [])
+    .map((item: any) => String(item.description ?? '').trim())
+    .filter(Boolean);
+  const requirementList = requirements.length
+    ? requirements.map((item: string) => `- ${item}`).join('\n')
+    : '- Requirements will be finalized during stakeholder validation.';
+
+  return {
+    cover: `${projectName}\n\nPrepared for ${clientName}\n\nTechnical Proposal`,
+    executive: `${clientName} requires a dependable software solution for ${projectName}. This proposal defines the business context, functional scope, implementation approach, delivery structure, assumptions, and review process needed to move from requirements into execution.`,
+    background: project.description || `The project is based on the requirement analysis captured for ${clientName}. The proposed solution should address the documented needs while leaving room for validation of ambiguous or missing requirements before implementation begins.`,
+    scope: `The solution scope is driven by these current requirements:\n\n${requirementList}\n\nOut-of-scope items should be confirmed during project kickoff and handled through change control.`,
+    technical: 'The implementation should use a modular architecture with a responsive user interface, secure API layer, persistent database, role-based access controls, validation, logging, and test coverage for critical workflows.',
+    architecture: 'The recommended architecture separates presentation, application services, data persistence, and integration concerns. This keeps the system maintainable, easier to test, and easier to extend as requirements mature.',
+    modules: `Primary modules will map directly to the validated requirements:\n\n${requirementList}`,
+    'tech-stack': 'The technology stack should be selected based on delivery speed, maintainability, security, integration needs, and the team skills available for long-term support.',
+    timeline: 'Delivery should proceed through discovery validation, design, implementation, testing, review, deployment, and handover. Final duration depends on confirmed scope and integration complexity.',
+    cost: 'Cost should be estimated from module complexity, engineering effort, infrastructure needs, third-party services, testing effort, and contingency for unclear requirements.',
+    terms: 'This proposal assumes timely stakeholder feedback, access to required systems, clear approval checkpoints, and a formal change process for new scope discovered after approval.',
   };
 }
 
@@ -289,7 +314,7 @@ Return polished proposal text only.`;
       const nextContent = { ...content, [sectionId]: fallback };
       setContent(nextContent);
       saveJson('latestProposal', nextContent);
-      toast.warning('Gemini was unavailable; local fallback content was inserted.');
+      toast.warning(`Local fallback inserted. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setGenerating(false);
@@ -311,7 +336,10 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
       const saved = await saveProposal(nextContent);
       toast.success(saved ? 'Full proposal generated and saved with Gemini.' : 'Full proposal generated locally. Save after selecting an analysis.');
     } catch (error) {
-      toast.error('Unable to generate the full proposal. Try one section at a time.');
+      const nextContent = { ...content, ...buildLocalProposalContent(project, latestAnalysis) };
+      setContent(nextContent);
+      saveJson('latestProposal', nextContent);
+      toast.warning(`Generated a local proposal fallback. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setGenerating(false);

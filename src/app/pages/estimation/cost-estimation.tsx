@@ -17,7 +17,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
+import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow } from '../../../lib/supabase';
@@ -95,7 +95,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
       }
       toast.success('Cost estimate recalculated with Gemini.');
     } catch (error) {
-      toast.warning('Gemini cost recalculation failed; current estimate retained.');
+      toast.warning(`Cost estimate retained. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setCalculating(false);

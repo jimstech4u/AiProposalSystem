@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Sparkles, Plus, X, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
+import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
 import { saveJson } from '../../../lib/storage';
 import { insertRow, selectRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
@@ -292,7 +292,7 @@ Requirements: ${JSON.stringify(usableRequirements)}`;
     } catch (error) {
       saveJson('latestAnalysis', { ...fallback, generatedAt: new Date().toISOString() });
       setAnalyzing(false);
-      toast.warning('Gemini was unavailable; generated a local analysis fallback.');
+      toast.warning(`Generated a local analysis fallback. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
       navigate('/requirements/1/results');
     }
