@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Sparkles, Save, Download, FileText, ClipboardCheck, Send } from 'lucide-react';
+import { Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
@@ -88,6 +88,7 @@ export default function ProposalGeneration() {
   const activeSectionName = useMemo(() => sections.find((section) => section.id === activeSection)?.name ?? 'Section', [activeSection]);
   const selectedProject = useMemo(() => projects.find((item) => item.id === projectId), [projectId, projects]);
   const selectedClient = useMemo(() => clients.find((client) => client.id === selectedClientId), [clients, selectedClientId]);
+  const hasUsableAnalysis = Boolean(latestAnalysis?.summary?.totalRequirements && analysisProject.name !== 'Untitled Project');
   const project = useMemo(
     () => ({
       name: selectedProject?.title ?? analysisProject.name,
@@ -325,33 +326,55 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex-1 min-w-0">
+    <div className="flex min-h-[calc(100dvh-4rem)] flex-col xl:flex-row">
+      <div className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 flex-1">
               <input
                 value={proposalTitle}
                 onChange={(event) => setProposalTitle(event.target.value)}
-                className="w-full rounded-md border border-transparent bg-transparent px-0 py-1 text-2xl font-bold text-gray-900 focus:border-gray-300 focus:px-3 focus:outline-none md:text-3xl"
+                aria-label="Proposal title"
+                className="w-full rounded-md border border-transparent bg-transparent px-0 py-1 text-2xl font-bold text-gray-900 focus:border-gray-300 focus:px-3 focus:outline-none sm:text-3xl"
               />
-              <p className="text-sm text-gray-600 mt-2">For {project.client} - Gemini-assisted draft</p>
-            </div>
-            <div className="flex flex-wrap gap-2 flex-shrink-0">
-              <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                  Build a proposal from a requirement analysis, generate section content, save drafts, then submit for manager review.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 xl:shrink-0">
+              <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export" className="h-10 w-10 px-0 sm:w-auto sm:px-3">
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
-              <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
+              <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-10 w-10 px-0 sm:w-auto sm:px-3">
                 <Save className="w-4 h-4" />
                 <span className="hidden sm:inline">Save</span>
               </Button>
-              <Button variant="ai" size="sm" onClick={submitForReview} aria-label="Submit for Review" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
+              <Button variant="ai" size="sm" onClick={submitForReview} aria-label="Submit for Review" className="h-10 w-10 px-0 sm:w-auto sm:px-3">
                 <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">Submit for Review</span>
               </Button>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:flex-wrap">
+              <span className="rounded-md bg-gray-50 px-3 py-2">Client: {project.client}</span>
+              <span className="rounded-md bg-gray-50 px-3 py-2">Analysis: {projectId ? 'Selected project record' : hasUsableAnalysis ? 'Latest local analysis' : 'Not selected'}</span>
+              <span className="rounded-md bg-gray-50 px-3 py-2">Status: {proposalId ? 'Saved draft' : 'Unsaved draft'}</span>
             </div>
           </div>
+
+          {!projectId && !hasUsableAnalysis && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="flex gap-3">
+                <Info className="mt-0.5 h-5 w-5 shrink-0" />
+                <div>
+                  <p className="font-semibold">Start with a requirement analysis.</p>
+                  <p className="mt-1 leading-6">A proposal needs project, client, and requirement details. Select an existing analysis below or create a new one before saving or submitting for review.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Card>
             <CardHeader className="pb-4">
@@ -359,6 +382,9 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 <ClipboardCheck className="h-5 w-5 text-blue-600" />
                 Proposal Intake
               </CardTitle>
+              <p className="text-sm leading-6 text-gray-600">
+                Choose the source records that should drive this proposal. The client controls who the proposal is for; the analysis controls requirements, scope, and AI context.
+              </p>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
               <div>
@@ -373,6 +399,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                     <option key={client.id} value={client.id}>{client.company_name}</option>
                   ))}
                 </select>
+                <p className="mt-1.5 text-xs leading-5 text-gray-500">Use the analysis client or override it with an existing client record.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Requirements Analysis</label>
@@ -386,9 +413,10 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                     <option key={item.id} value={item.id}>{item.title}</option>
                   ))}
                 </select>
+                <p className="mt-1.5 text-xs leading-5 text-gray-500">Select the project analysis that supplies scope, requirements, and complexity context.</p>
               </div>
               <div className="flex items-end">
-                <Link to="/requirements/new" className="w-full">
+                <Link to="/requirements/new" state={{ returnTo: '/proposals/new' }} className="w-full">
                   <Button variant="outline" className="w-full">
                     <FileText className="h-4 w-4" />
                     <span className="hidden sm:inline">New Analysis</span>
@@ -405,6 +433,9 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 <Sparkles className="w-6 h-6 text-purple-600" />
                 AI Content Generation
               </CardTitle>
+              <p className="text-sm leading-6 text-gray-600">
+                Tone changes the writing style. Detail level controls how much explanation each generated section includes.
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -428,10 +459,10 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 </div>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <Button variant="ai" onClick={() => handleGenerateSection()} disabled={generating} className="flex-1">
+                <Button variant="ai" onClick={() => handleGenerateSection()} disabled={generating || (!projectId && !hasUsableAnalysis)} className="flex-1">
                   {generating ? 'Generating...' : 'Generate Section'}
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={handleGenerateAll} disabled={generating}>
+                <Button variant="outline" className="flex-1" onClick={handleGenerateAll} disabled={generating || (!projectId && !hasUsableAnalysis)}>
                   <Sparkles className="w-4 h-4 mr-2" />
                   Generate All
                 </Button>
@@ -461,10 +492,11 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
         </div>
       </div>
 
-      <div className="w-full bg-gray-50 border-t border-gray-200 p-4 md:p-8 lg:w-96 lg:border-l lg:border-t-0">
+      <div className="w-full border-t border-gray-200 bg-gray-50 p-4 sm:p-6 xl:w-80 xl:border-l xl:border-t-0 2xl:w-96">
         <div>
           <h3 className="font-semibold text-gray-900 mb-4 text-lg">Proposal Sections</h3>
-          <div className="space-y-2">
+          <p className="mb-4 text-sm leading-6 text-gray-600">Pick a section to edit. Generate one section at a time when you want more control.</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
             {sections.map((section) => (
               <button
                 key={section.id}

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -8,11 +8,30 @@ import { Sparkles, Plus, X, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
 import { saveJson } from '../../../lib/storage';
-import { encodeFilterValue, insertRow, selectRows } from '../../../lib/supabase';
+import { insertRow, selectRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
+
+type ClientRow = {
+  id: string;
+  company_name: string;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  industry?: string | null;
+};
+
+const emptyInlineClient = {
+  company_name: '',
+  contact_name: '',
+  contact_email: '',
+  contact_phone: '',
+  industry: '',
+};
 
 export default function RequirementAnalysis() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
   const [step, setStep] = useState(1);
   const [analyzing, setAnalyzing] = useState(false);
   
@@ -31,6 +50,88 @@ export default function RequirementAnalysis() {
     { id: 1, description: '', category: 'auth', priority: 'high' },
   ]);
   const session = getStoredSession();
+  const [clients, setClients] = useState<ClientRow[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [addingClient, setAddingClient] = useState(false);
+  const [savingClient, setSavingClient] = useState(false);
+  const [inlineClient, setInlineClient] = useState(emptyInlineClient);
+  const selectedClient = useMemo(
+    () => clients.find((client) => client.id === selectedClientId) ?? null,
+    [clients, selectedClientId]
+  );
+
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const rows = await selectRows<ClientRow>(
+          'clients',
+          'select=id,company_name,contact_name,contact_email,contact_phone,industry&order=company_name.asc'
+        );
+        setClients(rows);
+      } catch (error) {
+        console.warn('Client loading skipped:', error);
+        toast.warning('Unable to load saved clients right now.');
+      } finally {
+        setClientsLoading(false);
+      }
+    };
+
+    void loadClients();
+  }, []);
+
+  const selectClient = (clientId: string) => {
+    setSelectedClientId(clientId);
+    const client = clients.find((item) => item.id === clientId);
+    setProjectData((current) => ({
+      ...current,
+      client: client?.company_name ?? '',
+      industry: client?.industry || current.industry,
+    }));
+  };
+
+  const createInlineClient = async () => {
+    const companyName = inlineClient.company_name.trim();
+    if (!companyName) {
+      toast.error('Enter a client company name.');
+      return;
+    }
+
+    setSavingClient(true);
+    try {
+      const [createdClient] = await insertRow('clients', {
+        company_name: companyName,
+        contact_name: inlineClient.contact_name.trim() || null,
+        contact_email: inlineClient.contact_email.trim() || null,
+        contact_phone: inlineClient.contact_phone.trim() || null,
+        industry: inlineClient.industry || null,
+        created_by: session?.userId ?? null,
+      });
+      const savedClient = createdClient as ClientRow | undefined;
+
+      if (!savedClient?.id) {
+        throw new Error('Client was not returned after save.');
+      }
+
+      setClients((current) =>
+        [...current, savedClient].sort((a, b) => a.company_name.localeCompare(b.company_name))
+      );
+      setSelectedClientId(savedClient.id);
+      setProjectData((current) => ({
+        ...current,
+        client: savedClient.company_name,
+        industry: savedClient.industry || current.industry,
+      }));
+      setInlineClient(emptyInlineClient);
+      setAddingClient(false);
+      toast.success('Client added.');
+    } catch (error) {
+      console.warn('Inline client creation failed:', error);
+      toast.error('Could not add client. Please try again.');
+    } finally {
+      setSavingClient(false);
+    }
+  };
 
   const addRequirement = () => {
     setRequirements([
@@ -49,28 +150,65 @@ export default function RequirementAnalysis() {
     );
   };
 
+  const getUsableRequirements = () =>
+    requirements.filter((requirement) => requirement.description.trim());
+
+  const goToRequirements = () => {
+    if (!projectData.name.trim()) {
+      toast.error('Enter a project name before continuing.');
+      return;
+    }
+
+    if (!selectedClient) {
+      toast.error('Select or add a client before continuing.');
+      return;
+    }
+
+    setStep(2);
+  };
+
+  const goToAnalysisReview = () => {
+    if (getUsableRequirements().length === 0) {
+      toast.error('Add at least one requirement before continuing.');
+      return;
+    }
+
+    setStep(3);
+  };
+
   const handleAnalyze = async () => {
-    if (!projectData.name.trim() || !projectData.client.trim()) {
+    if (!projectData.name.trim()) {
       toast.error('Please fill in required project information');
       return;
     }
 
-    const usableRequirements = requirements.filter((requirement) => requirement.description.trim());
+    if (!selectedClient) {
+      toast.error('Select or add a client before analysis.');
+      return;
+    }
+
+    const usableRequirements = getUsableRequirements();
     if (usableRequirements.length === 0) {
       toast.error('Add at least one requirement before analysis.');
       return;
     }
 
     setAnalyzing(true);
+    const analysisProjectData = {
+      ...projectData,
+      client: selectedClient.company_name,
+      clientId: selectedClient.id,
+      industry: selectedClient.industry || projectData.industry,
+    };
 
     const fallback = {
-      project: projectData,
+      project: analysisProjectData,
       requirements,
       summary: {
         complexityScore: 7.2,
         complexityLabel: 'Medium-High',
         confidenceScore: 89,
-      totalRequirements: usableRequirements.length,
+        totalRequirements: usableRequirements.length,
       },
       categories: [
         { name: 'Authentication', value: 1, color: '#3b82f6' },
@@ -107,35 +245,23 @@ export default function RequirementAnalysis() {
     try {
       const prompt = `Analyze this software project for technical proposal preparation. Return only valid JSON with keys: summary {complexityScore:number, complexityLabel:string, confidenceScore:number,totalRequirements:number}, categories [{name,value,color}], complexity [{subject,A,fullMark}], identifiedRequirements [{id,description,category,priority,complexity,confidence}], missingRequirements [{description,severity}], nextSteps [string].
 
-Project: ${JSON.stringify(projectData)}
+Project: ${JSON.stringify(analysisProjectData)}
 Requirements: ${JSON.stringify(usableRequirements)}`;
       const text = await generateWithGemini(prompt);
       const analysis = extractJsonObject(text, fallback);
-      saveJson('latestAnalysis', { ...analysis, project: projectData, requirements, generatedAt: new Date().toISOString() });
+      saveJson('latestAnalysis', { ...analysis, project: analysisProjectData, requirements, generatedAt: new Date().toISOString() });
 
       let savedProjectId: string | null = null;
       try {
-        const [existingClient] = await selectRows<any>(
-          'clients',
-          `select=id&company_name=eq.${encodeFilterValue(projectData.client.trim())}&limit=1`
-        );
-        const [savedClient] = existingClient
-          ? [existingClient]
-          : await insertRow('clients', {
-              company_name: projectData.client.trim(),
-              industry: projectData.industry,
-              created_by: session?.userId ?? null,
-            });
-
         const [savedProject] = await insertRow('projects', {
-          client_id: savedClient?.id ?? null,
-          title: projectData.name.trim(),
-          description: projectData.description.trim() || null,
-          industry: projectData.industry,
-          project_type: projectData.projectType,
+          client_id: selectedClient.id,
+          title: analysisProjectData.name.trim(),
+          description: analysisProjectData.description.trim() || null,
+          industry: analysisProjectData.industry,
+          project_type: analysisProjectData.projectType,
           status: 'analysis',
           requirements_text: usableRequirements.map((item) => item.description.trim()).join('\n'),
-          target_users: String(projectData.expectedUsers),
+          target_users: String(analysisProjectData.expectedUsers),
           complexity_score: analysis.summary.complexityScore * 10,
           confidence_score: analysis.summary.confidenceScore,
           submitted_by: session?.userId ?? null,
@@ -173,8 +299,16 @@ Requirements: ${JSON.stringify(usableRequirements)}`;
   };
 
   const saveDraft = () => {
+    const draftProject = selectedClient
+      ? {
+          ...projectData,
+          client: selectedClient.company_name,
+          clientId: selectedClient.id,
+          industry: selectedClient.industry || projectData.industry,
+        }
+      : projectData;
     const draft = {
-      project: projectData,
+      project: draftProject,
       requirements,
       summary: {
         complexityScore: 0,
@@ -260,17 +394,146 @@ Requirements: ${JSON.stringify(usableRequirements)}`;
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Client Name *
+                  Client *
                 </label>
-                <Input
-                  placeholder="Client company name"
-                  value={projectData.client}
-                  onChange={(e) =>
-                    setProjectData({ ...projectData, client: e.target.value })
-                  }
-                />
+                <div className="flex gap-2">
+                  <select
+                    className="flex h-10 min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedClientId}
+                    onChange={(e) => selectClient(e.target.value)}
+                    disabled={clientsLoading}
+                  >
+                    <option value="">
+                      {clientsLoading ? 'Loading clients...' : 'Select a saved client'}
+                    </option>
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.company_name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant={addingClient ? 'secondary' : 'outline'}
+                    onClick={() => setAddingClient((current) => !current)}
+                    aria-label={addingClient ? 'Close client form' : 'Add Client'}
+                    className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-3"
+                  >
+                    {addingClient ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    <span className="hidden sm:inline">{addingClient ? 'Close' : 'Add Client'}</span>
+                  </Button>
+                </div>
+                {selectedClient && (
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    {selectedClient.contact_name || selectedClient.contact_email
+                      ? [selectedClient.contact_name, selectedClient.contact_email].filter(Boolean).join(' - ')
+                      : 'Selected from saved clients.'}
+                  </p>
+                )}
               </div>
             </div>
+
+            {addingClient && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-4">
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">Add Client</h3>
+                  <p className="text-xs text-gray-600">
+                    Create the client here, then continue the analysis with that client selected.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Company Name *
+                    </label>
+                    <Input
+                      placeholder="Acme Inc."
+                      value={inlineClient.company_name}
+                      onChange={(e) =>
+                        setInlineClient({ ...inlineClient, company_name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Contact Name
+                    </label>
+                    <Input
+                      placeholder="Primary contact"
+                      value={inlineClient.contact_name}
+                      onChange={(e) =>
+                        setInlineClient({ ...inlineClient, contact_name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Contact Email
+                    </label>
+                    <Input
+                      type="email"
+                      placeholder="contact@example.com"
+                      value={inlineClient.contact_email}
+                      onChange={(e) =>
+                        setInlineClient({ ...inlineClient, contact_email: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Contact Phone
+                    </label>
+                    <Input
+                      placeholder="+1 555 0100"
+                      value={inlineClient.contact_phone}
+                      onChange={(e) =>
+                        setInlineClient({ ...inlineClient, contact_phone: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Industry
+                    </label>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={inlineClient.industry}
+                      onChange={(e) =>
+                        setInlineClient({ ...inlineClient, industry: e.target.value })
+                      }
+                    >
+                      <option value="">Use project industry</option>
+                      <option value="ecommerce">E-commerce</option>
+                      <option value="healthcare">Healthcare</option>
+                      <option value="finance">Finance</option>
+                      <option value="education">Education</option>
+                      <option value="manufacturing">Manufacturing</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setInlineClient(emptyInlineClient);
+                      setAddingClient(false);
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={createInlineClient}
+                    disabled={savingClient}
+                    className="w-full sm:w-auto"
+                  >
+                    {savingClient ? 'Adding...' : 'Add Client'}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -351,10 +614,10 @@ Requirements: ${JSON.stringify(usableRequirements)}`;
             </div>
 
             <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
-              <Button variant="secondary" onClick={() => navigate('/dashboard')} className="w-full sm:w-auto">
+              <Button variant="secondary" onClick={() => navigate(returnTo ?? '/dashboard')} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button onClick={() => setStep(2)} className="w-full sm:w-auto">
+              <Button onClick={goToRequirements} className="w-full sm:w-auto">
                 Next: Requirements
               </Button>
             </div>
@@ -442,6 +705,76 @@ Requirements: ${JSON.stringify(usableRequirements)}`;
 
             <div className="flex flex-col-reverse justify-between gap-3 pt-4 sm:flex-row">
               <Button variant="secondary" onClick={() => setStep(1)} className="w-full sm:w-auto">
+                Back
+              </Button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button variant="outline" onClick={saveDraft} className="w-full sm:w-auto">
+                  <Save className="w-4 h-4" />
+                  Save Draft
+                </Button>
+                <Button onClick={goToAnalysisReview} className="w-full sm:w-auto">
+                  Next: Analysis
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Analysis Review */}
+      {step === 3 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Analysis Review</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-lg border border-gray-200 p-4">
+                <p className="text-xs font-medium uppercase text-gray-500">Project</p>
+                <p className="mt-1 text-base font-semibold text-gray-900">{projectData.name}</p>
+                <p className="mt-1 text-sm text-gray-500">{projectData.projectType}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-4">
+                <p className="text-xs font-medium uppercase text-gray-500">Client</p>
+                <p className="mt-1 text-base font-semibold text-gray-900">
+                  {selectedClient?.company_name}
+                </p>
+                <p className="mt-1 text-sm text-gray-500">{selectedClient?.industry || projectData.industry}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-4">
+                <p className="text-xs font-medium uppercase text-gray-500">Requirements</p>
+                <p className="mt-1 text-base font-semibold text-gray-900">
+                  {getUsableRequirements().length} ready
+                </p>
+                <p className="mt-1 text-sm text-gray-500">Functional scope prepared</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Before analysis</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                The AI analysis will categorize requirements, estimate complexity, identify missing details,
+                and prepare proposal inputs for the next proposal generation flow.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {getUsableRequirements().map((requirement, index) => (
+                <div key={requirement.id} className="rounded-lg border border-gray-200 p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <p className="font-medium text-gray-900">Requirement #{index + 1}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary">{requirement.category}</Badge>
+                      <Badge>{requirement.priority}</Badge>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600">{requirement.description}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col-reverse justify-between gap-3 pt-4 sm:flex-row">
+              <Button variant="secondary" onClick={() => setStep(2)} className="w-full sm:w-auto">
                 Back
               </Button>
               <div className="flex flex-col gap-3 sm:flex-row">
