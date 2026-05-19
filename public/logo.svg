@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 56" role="img" aria-labelledby="title desc">
+  <title id="title">ProposalAI logo</title>
+  <desc id="desc">A structured document mark with a simple signal line and ProposalAI wordmark.</desc>
+  <rect width="220" height="56" rx="12" fill="#0f172a"/>
+  <g transform="translate(16 12)">
+    <path d="M6 0h22l10 10v22H6z" fill="#ffffff"/>
+    <path d="M28 0v10h10" fill="#cbd5e1"/>
+    <path d="M13 14h18M13 21h14M13 28h9" stroke="#0f172a" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M42 27c8-12 18-12 26 0" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="55" cy="21" r="3" fill="#38bdf8"/>
+  </g>
+  <text x="92" y="35" fill="#ffffff" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="0">ProposalAI</text>
+</svg>
