@@ -257,7 +257,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 Proposal Intake
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            <CardContent className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Client</label>
                 <select
@@ -288,7 +288,8 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 <Link to="/requirements/new" className="w-full">
                   <Button variant="outline" className="w-full">
                     <FileText className="h-4 w-4" />
-                    New Analysis
+                    <span className="hidden sm:inline">New Analysis</span>
+                    <span className="sm:hidden">New</span>
                   </Button>
                 </Link>
               </div>
@@ -323,7 +324,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                   </select>
                 </div>
               </div>
-              <div className="flex flex-col gap-4 sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <Button variant="ai" onClick={() => handleGenerateSection()} disabled={generating} className="flex-1">
                   {generating ? 'Generating...' : 'Generate Section'}
                 </Button>
@@ -337,7 +338,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
 
           <Card>
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <CardTitle className="text-xl">{activeSectionName}</CardTitle>
                 <Badge variant="purple" className="gap-1 px-3 py-1">
                   <Sparkles className="w-3 h-3" />
@@ -347,7 +348,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
             </CardHeader>
             <CardContent>
               <textarea
-                className="w-full h-96 p-5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base leading-relaxed"
+                className="h-72 w-full rounded-lg border border-gray-300 p-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 sm:h-96 sm:p-5"
                 value={content[activeSection] ?? ''}
                 placeholder="Generate this section with Gemini or write the content manually."
                 onChange={(event) => setContent((current) => ({ ...current, [activeSection]: event.target.value }))}

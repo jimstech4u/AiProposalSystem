@@ -80,19 +80,19 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Timeline Prediction</h1>
           <p className="text-gray-600 mt-1">AI-powered project timeline estimation</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={exportTimeline}>
-            <Download className="w-4 h-4 mr-1" />
-            Export Timeline
+        <div className="flex shrink-0 gap-2 sm:gap-3">
+          <Button variant="outline" onClick={exportTimeline} aria-label="Export Timeline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Export Timeline</span>
           </Button>
-          <Button variant="ai" onClick={recalculate} disabled={calculating}>
-            <Sparkles className="w-4 h-4 mr-1" />
-            {calculating ? 'Recalculating...' : 'Recalculate'}
+          <Button variant="ai" onClick={recalculate} disabled={calculating} aria-label={calculating ? 'Recalculating' : 'Recalculate'} className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">{calculating ? 'Recalculating...' : 'Recalculate'}</span>
           </Button>
         </div>
       </div>

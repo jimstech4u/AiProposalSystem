@@ -177,7 +177,8 @@ Requirements: ${JSON.stringify(requirements)}`;
       </div>
 
       {/* Progress Stepper */}
-      <div className="flex items-center justify-center space-x-4 py-6">
+      <div className="overflow-x-auto py-4 sm:py-6">
+        <div className="flex min-w-max items-center justify-center space-x-3 px-1 sm:space-x-4">
         {[
           { num: 1, label: 'Project Info' },
           { num: 2, label: 'Requirements' },
@@ -202,13 +203,14 @@ Requirements: ${JSON.stringify(requirements)}`;
             </span>
             {s.num < 3 && (
               <div
-                className={`w-12 h-0.5 mx-4 ${
+                className={`w-8 h-0.5 mx-3 sm:mx-4 sm:w-12 ${
                   step > s.num ? 'bg-blue-600' : 'bg-gray-300'
                 }`}
               />
             )}
           </div>
         ))}
+        </div>
       </div>
 
       {/* Step 1: Project Information */}
@@ -323,11 +325,11 @@ Requirements: ${JSON.stringify(requirements)}`;
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="secondary" onClick={() => navigate('/dashboard')}>
+            <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={() => navigate('/dashboard')} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button onClick={() => setStep(2)}>
+              <Button onClick={() => setStep(2)} className="w-full sm:w-auto">
                 Next: Requirements
               </Button>
             </div>
@@ -339,11 +341,11 @@ Requirements: ${JSON.stringify(requirements)}`;
       {step === 2 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between gap-3">
               <CardTitle>Functional Requirements</CardTitle>
-              <Button onClick={addRequirement} size="sm">
-                <Plus className="w-4 h-4 mr-1" />
-                Add Requirement
+              <Button onClick={addRequirement} size="sm" aria-label="Add Requirement" className="h-8 w-8 shrink-0 px-0 sm:w-auto sm:px-3">
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Add Requirement</span>
               </Button>
             </div>
           </CardHeader>
@@ -413,17 +415,17 @@ Requirements: ${JSON.stringify(requirements)}`;
               </div>
             ))}
 
-            <div className="flex flex-col justify-between gap-3 pt-4 sm:flex-row">
-              <Button variant="secondary" onClick={() => setStep(1)}>
+            <div className="flex flex-col-reverse justify-between gap-3 pt-4 sm:flex-row">
+              <Button variant="secondary" onClick={() => setStep(1)} className="w-full sm:w-auto">
                 Back
               </Button>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button variant="outline" onClick={() => toast.success('Draft saved')}>
-                  <Save className="w-4 h-4 mr-1" />
+                <Button variant="outline" onClick={() => toast.success('Draft saved')} className="w-full sm:w-auto">
+                  <Save className="w-4 h-4" />
                   Save Draft
                 </Button>
-                <Button variant="ai" onClick={handleAnalyze}>
-                  <Sparkles className="w-4 h-4 mr-1" />
+                <Button variant="ai" onClick={handleAnalyze} className="w-full sm:w-auto">
+                  <Sparkles className="w-4 h-4" />
                   Analyze with AI
                 </Button>
               </div>

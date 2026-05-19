@@ -308,7 +308,7 @@ export default function IntegrationsPage() {
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={saveIntegration} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:p-6">
+          <form onSubmit={saveIntegration} className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:max-h-[90vh] sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">{editing ? 'Edit Integration' : 'New Integration'}</h2>
               <button type="button" onClick={() => setFormOpen(false)} className="rounded-md p-2 hover:bg-gray-100" aria-label="Close">
@@ -350,11 +350,11 @@ export default function IntegrationsPage() {
                 <textarea value={form.config} onChange={(event) => setForm({ ...form, config: event.target.value })} className="min-h-56 w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm" />
               </label>
             </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving} className="w-full sm:w-auto">
                 {saving ? 'Saving...' : 'Save Integration'}
               </Button>
             </div>

@@ -65,14 +65,14 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Technology Stack Recommendation</h1>
           <p className="text-gray-600 mt-1">AI-powered technology selection</p>
         </div>
-        <Button variant="ai" onClick={regenerate} disabled={generating}>
-          <Sparkles className="w-4 h-4 mr-1" />
-          {generating ? 'Generating...' : 'Regenerate'}
+        <Button variant="ai" onClick={regenerate} disabled={generating} aria-label={generating ? 'Generating' : 'Regenerate'} className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
+          <Sparkles className="w-4 h-4" />
+          <span className="hidden sm:inline">{generating ? 'Generating...' : 'Regenerate'}</span>
         </Button>
       </div>
 
