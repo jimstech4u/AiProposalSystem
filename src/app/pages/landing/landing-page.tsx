@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import {
   BarChart3,
   CheckCircle2,
@@ -7,9 +8,12 @@ import {
   Layers3,
   ShieldCheck,
   Sparkles,
+  Moon,
+  Sun,
   Users,
 } from 'lucide-react';
 import { AuthBrand } from '../../components/auth-brand';
+import { getStoredTheme, setStoredTheme, type ThemeMode } from '../../../lib/theme';
 
 const modules = [
   { icon: FileText, title: 'Requirement Analysis', body: 'Capture client needs, functional scope, constraints, and AI-assisted requirement summaries.' },
@@ -28,12 +32,37 @@ const workflow = [
 ];
 
 export default function LandingPage() {
+  const [theme, setTheme] = useState<ThemeMode>(() => getStoredTheme());
+
+  useEffect(() => {
+    const syncTheme = (event: Event) => {
+      setTheme((event as CustomEvent<ThemeMode>).detail ?? getStoredTheme());
+    };
+
+    window.addEventListener('proposalai:theme-change', syncTheme);
+    return () => window.removeEventListener('proposalai:theme-change', syncTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    setStoredTheme(next);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950">
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
           <AuthBrand />
           <nav className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              aria-label={theme === 'dark' ? 'Use light mode' : 'Use dark mode'}
+            >
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
             <Link to="/login" className="rounded-md px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
               Sign In
             </Link>
