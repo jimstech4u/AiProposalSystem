@@ -20,6 +20,7 @@ const fallbackAnalysis = {
 
 export default function AnalysisResults() {
   const analysis = readJson('latestAnalysis', fallbackAnalysis) as typeof fallbackAnalysis;
+  const hasAnalysis = analysis.project.name !== fallbackAnalysis.project.name && analysis.summary.totalRequirements > 0;
 
   const exportReport = () => {
     downloadTextFile(
@@ -35,28 +36,28 @@ export default function AnalysisResults() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Analysis Results</h1>
           <p className="text-gray-600 mt-1">
             {analysis.project.name} - {analysis.project.client} - {new Date(analysis.generatedAt).toLocaleDateString()}
           </p>
         </div>
-        <div className="flex gap-3">
-          <Link to="/requirements/new">
-            <Button variant="outline">
-              <Edit className="w-4 h-4 mr-1" />
-              Edit Requirements
+        <div className="flex shrink-0 gap-2 sm:gap-3">
+          <Link to="/requirements/new" aria-label="Edit Requirements">
+            <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <Edit className="w-4 h-4" />
+              <span className="hidden sm:inline">Edit Requirements</span>
             </Button>
           </Link>
-          <Button variant="secondary" onClick={exportReport}>
-            <Download className="w-4 h-4 mr-1" />
-            Export Report
+          <Button variant="secondary" onClick={exportReport} aria-label="Export Report" className="h-10 w-10 px-0 sm:w-auto sm:px-4" disabled={!hasAnalysis}>
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Export Report</span>
           </Button>
-          <Link to="/proposals/new">
-            <Button variant="ai">
-              <Sparkles className="w-4 h-4 mr-1" />
-              Generate Proposal
+          <Link to={hasAnalysis ? '/proposals/new' : '/requirements/new'} aria-label={hasAnalysis ? 'Generate Proposal' : 'Create Analysis'}>
+            <Button variant="ai" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">{hasAnalysis ? 'Generate Proposal' : 'Create Analysis'}</span>
             </Button>
           </Link>
         </div>

@@ -3,12 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Sparkles, Save, Download, FileText, ClipboardCheck } from 'lucide-react';
+import { Sparkles, Save, Download, FileText, ClipboardCheck, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
-import { readJson, saveJson } from '../../../lib/storage';
+import { readJson, removeJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
+import { getStoredSession } from '../../../lib/permissions';
 
 const sections = [
   { id: 'cover', name: 'Cover Page' },
@@ -65,6 +66,7 @@ function defaultContent(projectName: string, clientName: string): ProposalConten
 
 export default function ProposalGeneration() {
   const { id } = useParams();
+  const isEditingExistingProposal = Boolean(id && id !== 'new');
   const latestAnalysis = readJson<any>('latestAnalysis', null);
   const analysisProject = latestAnalysis?.project ?? { name: 'Untitled Project', client: 'Client not selected' };
   const [projectId, setProjectId] = useState(readJson<string | null>('latestProjectId', null));
@@ -72,13 +74,16 @@ export default function ProposalGeneration() {
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
   const storedProposal = readJson<ProposalContent | null>('latestProposal', null);
-  const [proposalId, setProposalId] = useState(id && id !== 'new' ? id : '');
+  const [proposalId, setProposalId] = useState(isEditingExistingProposal ? id ?? '' : '');
   const [proposalTitle, setProposalTitle] = useState(`${analysisProject.name} Proposal`);
   const [generating, setGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState('executive');
   const [tone, setTone] = useState('Professional & Formal');
   const [detailLevel, setDetailLevel] = useState('Comprehensive');
-  const [content, setContent] = useState<ProposalContent>(() => storedProposal ?? defaultContent(analysisProject.name, analysisProject.client));
+  const [content, setContent] = useState<ProposalContent>(() =>
+    isEditingExistingProposal ? storedProposal ?? defaultContent(analysisProject.name, analysisProject.client) : defaultContent(analysisProject.name, analysisProject.client)
+  );
+  const session = getStoredSession();
 
   const activeSectionName = useMemo(() => sections.find((section) => section.id === activeSection)?.name ?? 'Section', [activeSection]);
   const selectedProject = useMemo(() => projects.find((item) => item.id === projectId), [projectId, projects]);
@@ -92,6 +97,15 @@ export default function ProposalGeneration() {
     }),
     [analysisProject.client, analysisProject.name, latestAnalysis, selectedClient?.company_name, selectedProject]
   );
+
+  useEffect(() => {
+    if (!isEditingExistingProposal) {
+      removeJson('latestProposal');
+      setProposalId('');
+      setProposalTitle(`${analysisProject.name} Proposal`);
+      setContent(defaultContent(analysisProject.name, analysisProject.client));
+    }
+  }, [analysisProject.client, analysisProject.name, isEditingExistingProposal]);
 
   useEffect(() => {
     async function loadProposalSources() {
@@ -138,16 +152,75 @@ export default function ProposalGeneration() {
     loadProposal();
   }, [id]);
 
+  const ensureProject = async () => {
+    if (projectId) return projectId;
+
+    const projectName = String(analysisProject.name ?? '').trim();
+    const clientName = String(analysisProject.client ?? '').trim();
+    if (!projectName || projectName === 'Untitled Project' || !clientName || clientName === 'Client not selected') {
+      throw new Error('Create or select a requirement analysis before saving this proposal.');
+    }
+
+    const [existingClient] = await selectRows<any>(
+      'clients',
+      `select=id&company_name=eq.${encodeURIComponent(clientName)}&limit=1`
+    );
+    const [savedClient] = existingClient
+      ? [existingClient]
+      : await insertRow('clients', {
+          company_name: clientName,
+          industry: latestAnalysis?.project?.industry ?? null,
+          created_by: session?.userId ?? null,
+        });
+    const requirementText = (latestAnalysis?.requirements ?? [])
+      .map((item: any) => item.description)
+      .filter(Boolean)
+      .join('\n');
+    const [savedProject] = await insertRow<ProjectRow>('projects', {
+      client_id: savedClient?.id ?? null,
+      title: projectName,
+      description: latestAnalysis?.project?.description ?? null,
+      industry: latestAnalysis?.project?.industry ?? null,
+      project_type: latestAnalysis?.project?.projectType ?? 'web',
+      status: 'proposal',
+      requirements_text: requirementText,
+      target_users: String(latestAnalysis?.project?.expectedUsers ?? ''),
+      complexity_score: Number(latestAnalysis?.summary?.complexityScore ?? 0) * 10,
+      confidence_score: Number(latestAnalysis?.summary?.confidenceScore ?? 0),
+      submitted_by: session?.userId ?? null,
+    } as any);
+
+    const nextProjectId = savedProject?.id;
+    if (!nextProjectId) throw new Error('Unable to create proposal project record.');
+
+    const requirementRows = (latestAnalysis?.requirements ?? [])
+      .filter((requirement: any) => String(requirement.description ?? '').trim())
+      .map((requirement: any) => ({
+        project_id: nextProjectId,
+        category: requirement.category ?? 'general',
+        title: String(requirement.description).trim().slice(0, 80),
+        description: String(requirement.description).trim(),
+        priority: requirement.priority ?? 'medium',
+        requirement_type: 'functional',
+        complexity: 50,
+      }));
+    if (requirementRows.length > 0) {
+      await Promise.all(requirementRows.map((row: any) => insertRow('requirements', row)));
+    }
+
+    setProjectId(nextProjectId);
+    saveJson('latestProjectId', nextProjectId);
+    return nextProjectId;
+  };
+
   const saveProposal = async (nextContent = content) => {
     saveJson('latestProposal', nextContent);
     try {
-      if (!projectId) {
-        throw new Error('No persisted project id is available for this proposal.');
-      }
+      const persistedProjectId = await ensureProject();
 
       const payload = {
-        project_id: projectId,
-        title: proposalTitle,
+        project_id: persistedProjectId,
+        title: proposalTitle.trim() || `${project.name} Proposal`,
         template_name: 'Standard Technical Proposal',
         tone,
         detail_level: detailLevel,
@@ -158,13 +231,39 @@ export default function ProposalGeneration() {
       };
 
       if (proposalId) {
-        await updateRows('proposals', `id=eq.${proposalId}`, payload);
+        const [updated] = await updateRows<ProposalRow>('proposals', `id=eq.${proposalId}`, payload);
+        if (updated?.id) setProposalId(updated.id);
+        await updateRows('projects', `id=eq.${persistedProjectId}`, { status: 'proposal' }).catch(() => undefined);
+        return updated?.id ?? proposalId;
       } else {
         const [saved] = await insertRow<ProposalRow>('proposals', payload as ProposalRow);
         if (saved?.id) setProposalId(saved.id);
+        await updateRows('projects', `id=eq.${persistedProjectId}`, { status: 'proposal' }).catch(() => undefined);
+        return saved?.id ?? true;
       }
     } catch (error) {
-      console.warn('Proposal persistence skipped:', error);
+      toast.error(error instanceof Error ? error.message : 'Proposal save failed.');
+      console.warn('Proposal persistence failed:', error);
+      return false;
+    }
+  };
+
+  const submitForReview = async () => {
+    const saved = await saveProposal();
+    if (!saved) return;
+
+    const savedProposalId = typeof saved === 'string' ? saved : proposalId;
+    if (!savedProposalId) {
+      toast.error('Save the proposal before submitting for review.');
+      return;
+    }
+
+    try {
+      await updateRows('proposals', `id=eq.${savedProposalId}`, { status: 'in_review' });
+      toast.success('Proposal submitted for review.');
+    } catch (error) {
+      toast.error('Unable to submit proposal for review.');
+      console.warn(error);
     }
   };
 
@@ -180,8 +279,8 @@ Return polished proposal text only.`;
       const text = await generateWithGemini(prompt);
       const nextContent = { ...content, [sectionId]: text };
       setContent(nextContent);
-      await saveProposal(nextContent);
-      toast.success('Section generated with Gemini.');
+      const saved = await saveProposal(nextContent);
+      toast.success(saved ? 'Section generated and saved with Gemini.' : 'Section generated locally. Save after selecting an analysis.');
     } catch (error) {
       const fallback = `${activeSectionName}\n\nThis section should be completed using the project requirements, client objectives, technical constraints, delivery assumptions, and acceptance criteria captured during requirement analysis.`;
       const nextContent = { ...content, [sectionId]: fallback };
@@ -206,8 +305,8 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
       const generated = extractJsonObject<ProposalContent>(text, content);
       const nextContent = { ...content, ...generated };
       setContent(nextContent);
-      await saveProposal(nextContent);
-      toast.success('Full proposal generated with Gemini.');
+      const saved = await saveProposal(nextContent);
+      toast.success(saved ? 'Full proposal generated and saved with Gemini.' : 'Full proposal generated locally. Save after selecting an analysis.');
     } catch (error) {
       toast.error('Unable to generate the full proposal. Try one section at a time.');
       console.warn(error);
@@ -243,9 +342,13 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
-              <Button variant="primary" size="sm" onClick={() => saveProposal().then(() => toast.success('Proposal saved.'))} aria-label="Save" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
+              <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
                 <Save className="w-4 h-4" />
                 <span className="hidden sm:inline">Save</span>
+              </Button>
+              <Button variant="ai" size="sm" onClick={submitForReview} aria-label="Submit for Review" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
+                <Send className="w-4 h-4" />
+                <span className="hidden sm:inline">Submit for Review</span>
               </Button>
             </div>
           </div>

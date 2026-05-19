@@ -200,6 +200,24 @@ export async function insertRow<T extends Record<string, any>>(table: string, ro
   return (await response.json()) as T[];
 }
 
+export async function upsertRows<T extends Record<string, any>>(table: string, rows: T[], onConflict: string, token?: string) {
+  const response = await fetch(restUrl(`/${table}?on_conflict=${encodeURIComponent(onConflict)}`), {
+    method: 'POST',
+    headers: {
+      ...headers(token),
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(rows),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Unable to upsert ${table}.`);
+  }
+
+  return (await response.json()) as T[];
+}
+
 export async function selectRows<T>(table: string, query = 'select=*', token?: string) {
   const response = await fetch(restUrl(`/${table}?${query}`), {
     method: 'GET',

@@ -50,8 +50,14 @@ export default function RequirementAnalysis() {
   };
 
   const handleAnalyze = async () => {
-    if (!projectData.name || !projectData.client) {
+    if (!projectData.name.trim() || !projectData.client.trim()) {
       toast.error('Please fill in required project information');
+      return;
+    }
+
+    const usableRequirements = requirements.filter((requirement) => requirement.description.trim());
+    if (usableRequirements.length === 0) {
+      toast.error('Add at least one requirement before analysis.');
       return;
     }
 
@@ -64,7 +70,7 @@ export default function RequirementAnalysis() {
         complexityScore: 7.2,
         complexityLabel: 'Medium-High',
         confidenceScore: 89,
-        totalRequirements: Math.max(requirements.length, 1),
+      totalRequirements: usableRequirements.length,
       },
       categories: [
         { name: 'Authentication', value: 1, color: '#3b82f6' },
@@ -80,7 +86,7 @@ export default function RequirementAnalysis() {
         { subject: 'Integration', A: 7, fullMark: 10 },
         { subject: 'Security', A: 7, fullMark: 10 },
       ],
-      identifiedRequirements: requirements.map((requirement) => ({
+      identifiedRequirements: usableRequirements.map((requirement) => ({
         id: requirement.id,
         description: requirement.description || 'Requirement pending clarification',
         category: requirement.category,
@@ -102,7 +108,7 @@ export default function RequirementAnalysis() {
       const prompt = `Analyze this software project for technical proposal preparation. Return only valid JSON with keys: summary {complexityScore:number, complexityLabel:string, confidenceScore:number,totalRequirements:number}, categories [{name,value,color}], complexity [{subject,A,fullMark}], identifiedRequirements [{id,description,category,priority,complexity,confidence}], missingRequirements [{description,severity}], nextSteps [string].
 
 Project: ${JSON.stringify(projectData)}
-Requirements: ${JSON.stringify(requirements)}`;
+Requirements: ${JSON.stringify(usableRequirements)}`;
       const text = await generateWithGemini(prompt);
       const analysis = extractJsonObject(text, fallback);
       saveJson('latestAnalysis', { ...analysis, project: projectData, requirements, generatedAt: new Date().toISOString() });
@@ -123,12 +129,12 @@ Requirements: ${JSON.stringify(requirements)}`;
 
         const [savedProject] = await insertRow('projects', {
           client_id: savedClient?.id ?? null,
-          title: projectData.name,
-          description: projectData.description,
+          title: projectData.name.trim(),
+          description: projectData.description.trim() || null,
           industry: projectData.industry,
           project_type: projectData.projectType,
           status: 'analysis',
-          requirements_text: requirements.map((item) => item.description).join('\n'),
+          requirements_text: usableRequirements.map((item) => item.description.trim()).join('\n'),
           target_users: String(projectData.expectedUsers),
           complexity_score: analysis.summary.complexityScore * 10,
           confidence_score: analysis.summary.confidenceScore,
@@ -138,14 +144,12 @@ Requirements: ${JSON.stringify(requirements)}`;
         if (savedProjectId) {
           saveJson('latestProjectId', savedProjectId);
           await Promise.all(
-            requirements
-              .filter((requirement) => requirement.description.trim())
-              .map((requirement) =>
+            usableRequirements.map((requirement) =>
                 insertRow('requirements', {
                   project_id: savedProjectId,
                   category: requirement.category,
-                  title: requirement.description.slice(0, 80),
-                  description: requirement.description,
+                  title: requirement.description.trim().slice(0, 80),
+                  description: requirement.description.trim(),
                   priority: requirement.priority,
                   requirement_type: 'functional',
                   complexity: 50,
@@ -166,6 +170,27 @@ Requirements: ${JSON.stringify(requirements)}`;
       console.warn(error);
       navigate('/requirements/1/results');
     }
+  };
+
+  const saveDraft = () => {
+    const draft = {
+      project: projectData,
+      requirements,
+      summary: {
+        complexityScore: 0,
+        complexityLabel: 'Draft',
+        confidenceScore: 0,
+        totalRequirements: requirements.filter((requirement) => requirement.description.trim()).length,
+      },
+      categories: [],
+      complexity: [],
+      identifiedRequirements: [],
+      missingRequirements: [],
+      nextSteps: ['Complete requirement analysis to generate proposal inputs.'],
+      generatedAt: new Date().toISOString(),
+    };
+    saveJson('latestAnalysis', draft);
+    toast.success('Draft saved locally.');
   };
 
   return (
@@ -420,7 +445,7 @@ Requirements: ${JSON.stringify(requirements)}`;
                 Back
               </Button>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button variant="outline" onClick={() => toast.success('Draft saved')} className="w-full sm:w-auto">
+                <Button variant="outline" onClick={saveDraft} className="w-full sm:w-auto">
                   <Save className="w-4 h-4" />
                   Save Draft
                 </Button>

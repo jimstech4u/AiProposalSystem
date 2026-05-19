@@ -52,7 +52,7 @@ export default function ProposalReviewPage() {
   }, [proposals, search]);
   const selected = useMemo(() => proposals.find((proposal) => proposal.id === selectedProposal), [proposals, selectedProposal]);
 
-  const setDecision = async (id: string, status: 'approved' | 'rejected' | 'in_review', decision: 'approved' | 'rejected' | 'revision_requested') => {
+  const setDecision = async (id: string, status: 'approved' | 'rejected' | 'draft', decision: 'approved' | 'rejected' | 'revision_requested') => {
     try {
       await insertRow('proposal_reviews', {
         proposal_id: id,
@@ -66,8 +66,11 @@ export default function ProposalReviewPage() {
         },
       });
       await updateRows<Proposal>('proposals', `id=eq.${id}`, { status });
-      setProposals((current) => current.filter((proposal) => proposal.id !== id));
-      setSelectedProposal(null);
+      setProposals((current) => {
+        const remaining = current.filter((proposal) => proposal.id !== id);
+        setSelectedProposal(remaining[0]?.id ?? null);
+        return remaining;
+      });
       setComments('');
       toast.success(decision === 'approved' ? 'Proposal approved successfully.' : decision === 'rejected' ? 'Proposal rejected.' : 'Revision requested.');
     } catch (error) {
@@ -166,7 +169,7 @@ export default function ProposalReviewPage() {
                   <XCircle className="w-4 h-4" />
                   <span className="hidden sm:inline">Reject Proposal</span>
                 </Button>
-                <Button onClick={() => setDecision(selected.id, 'in_review', 'revision_requested')} variant="outline" aria-label="Request Revision" className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:flex-1 sm:px-4">
+                <Button onClick={() => setDecision(selected.id, 'draft', 'revision_requested')} variant="outline" aria-label="Request Revision" className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:flex-1 sm:px-4">
                   <Clock className="w-4 h-4" />
                   <span className="hidden sm:inline">Request Revision</span>
                 </Button>
