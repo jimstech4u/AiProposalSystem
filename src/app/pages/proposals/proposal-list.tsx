@@ -78,17 +78,17 @@ export default function ProposalList() {
   }, [proposals, search]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Proposals</h1>
           <p className="text-gray-600 mt-1">Live proposal records</p>
         </div>
         {canCreate && (
-          <Link to="/proposals/new">
-            <Button variant="primary" size="lg">
-              <Plus className="w-5 h-5 mr-2" />
-              New Proposal
+          <Link to="/proposals/new" aria-label="New Proposal" className="shrink-0">
+            <Button variant="primary" size="lg" className="h-12 w-12 px-0 sm:w-auto sm:px-6">
+              <Plus className="h-5 w-5" />
+              <span className="hidden sm:inline">New Proposal</span>
             </Button>
           </Link>
         )}

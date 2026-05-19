@@ -171,21 +171,21 @@ export default function ReportsAnalytics() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
           <p className="text-gray-600 mt-1">Metrics and saved report configurations calculated from live records.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={exportCurrentReport}>
+          <Button variant="outline" onClick={exportCurrentReport} aria-label="Export Analytics" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
             <Download className="w-4 h-4" />
-            Export Analytics
+            <span className="hidden sm:inline">Export Analytics</span>
           </Button>
           {canCreate && (
-            <Button onClick={openCreate}>
+            <Button onClick={openCreate} aria-label="New Report" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
               <Plus className="w-4 h-4" />
-              New Report
+              <span className="hidden sm:inline">New Report</span>
             </Button>
           )}
         </div>
@@ -331,7 +331,7 @@ export default function ReportsAnalytics() {
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={saveReport} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+          <form onSubmit={saveReport} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">{editing ? 'Edit Report' : 'New Report'}</h2>
               <button type="button" onClick={() => setFormOpen(false)} className="rounded-md p-2 hover:bg-gray-100" aria-label="Close">

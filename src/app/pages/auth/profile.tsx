@@ -121,7 +121,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
         <p className="text-gray-600">Manage your account information</p>

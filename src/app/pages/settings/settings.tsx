@@ -130,7 +130,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-600">Manage live user preferences.</p>
@@ -209,17 +209,17 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <div className="flex justify-end gap-3">
             {canDelete && (
-              <Button variant="outline" onClick={resetSettings}>
+              <Button variant="outline" onClick={resetSettings} aria-label="Reset" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
                 <Trash2 className="w-4 h-4" />
-                Reset
+                <span className="hidden sm:inline">Reset</span>
               </Button>
             )}
             {canUpdate && (
-              <Button onClick={saveSettings} disabled={saving}>
+              <Button onClick={saveSettings} disabled={saving} aria-label={saving ? 'Saving Settings' : 'Save Settings'} className="h-10 w-10 px-0 sm:w-auto sm:px-4">
                 <Save className="w-4 h-4" />
-                {saving ? 'Saving...' : 'Save Settings'}
+                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Settings'}</span>
               </Button>
             )}
           </div>

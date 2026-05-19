@@ -77,7 +77,7 @@ export default function ProposalReviewPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Proposal Review & Approval</h1>
         <p className="text-gray-600">Review proposals currently marked as in review.</p>
@@ -157,17 +157,18 @@ export default function ProposalReviewPage() {
                 />
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => setDecision(selected.id, 'approved', 'approved')} className="flex-1">
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Approve Proposal
+              <div className="flex gap-3">
+                <Button onClick={() => setDecision(selected.id, 'approved', 'approved')} aria-label="Approve Proposal" className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:flex-1 sm:px-4">
+                  <CheckCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Approve Proposal</span>
                 </Button>
-                <Button onClick={() => setDecision(selected.id, 'rejected', 'rejected')} variant="danger" className="flex-1">
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Reject Proposal
+                <Button onClick={() => setDecision(selected.id, 'rejected', 'rejected')} variant="danger" aria-label="Reject Proposal" className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:flex-1 sm:px-4">
+                  <XCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Reject Proposal</span>
                 </Button>
-                <Button onClick={() => setDecision(selected.id, 'in_review', 'revision_requested')} variant="outline" className="flex-1">
-                  Request Revision
+                <Button onClick={() => setDecision(selected.id, 'in_review', 'revision_requested')} variant="outline" aria-label="Request Revision" className="h-10 w-10 px-0 sm:h-auto sm:w-auto sm:flex-1 sm:px-4">
+                  <Clock className="w-4 h-4" />
+                  <span className="hidden sm:inline">Request Revision</span>
                 </Button>
               </div>
             </Card>

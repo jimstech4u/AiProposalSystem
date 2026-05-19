@@ -190,16 +190,16 @@ export default function TemplateManagementPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Template Management</h1>
           <p className="text-gray-600 mt-1">Create, edit, duplicate, export, and delete proposal templates.</p>
         </div>
         {canCreate && (
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} aria-label="New Template" className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
             <Plus className="w-4 h-4" />
-            New Template
+            <span className="hidden sm:inline">New Template</span>
           </Button>
         )}
       </div>
@@ -304,7 +304,7 @@ export default function TemplateManagementPage() {
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={saveTemplate} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+          <form onSubmit={saveTemplate} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">{editing ? 'Edit Template' : 'New Template'}</h2>
               <button type="button" onClick={() => setFormOpen(false)} className="rounded-md p-2 hover:bg-gray-100" aria-label="Close">

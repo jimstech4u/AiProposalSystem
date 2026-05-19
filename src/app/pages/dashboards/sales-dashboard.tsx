@@ -9,16 +9,16 @@ export default function SalesDashboard() {
   const { stats, proposals, clients, loading } = useDashboardData();
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Sales Dashboard</h1>
           <p className="text-gray-600 mt-1">Client and proposal activity.</p>
         </div>
-        <Link to="/requirements/new">
-          <Button variant="primary">
-            <Plus className="w-4 h-4 mr-2" />
-            New Proposal
+        <Link to="/requirements/new" aria-label="New Proposal" className="shrink-0">
+          <Button variant="primary" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Proposal</span>
           </Button>
         </Link>
       </div>

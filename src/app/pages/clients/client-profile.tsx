@@ -50,22 +50,22 @@ export default function ClientProfile() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-2xl font-bold text-white">
             {client.company_name.charAt(0)}
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-3xl font-bold text-gray-900">{client.company_name}</h1>
             <p className="text-gray-600 mt-1">{client.industry || 'Industry not set'}</p>
           </div>
         </div>
         {client.contact_email && (
-          <a href={`mailto:${client.contact_email}`}>
-            <Button variant="outline">
-              <Mail className="w-4 h-4 mr-1" />
-              Send Email
+          <a href={`mailto:${client.contact_email}`} aria-label="Send Email" className="shrink-0">
+            <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">Send Email</span>
             </Button>
           </a>
         )}

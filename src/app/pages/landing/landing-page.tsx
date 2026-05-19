@@ -52,9 +52,9 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950">
       <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6">
           <AuthBrand />
-          <nav className="flex items-center gap-3">
+          <nav className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={toggleTheme}
@@ -63,10 +63,10 @@ export default function LandingPage() {
             >
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
-            <Link to="/login" className="rounded-md px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800">
+            <Link to="/login" className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800 sm:px-4">
               Sign In
             </Link>
-            <Link to="/register" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            <Link to="/register" className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 sm:px-4">
               Create Account
             </Link>
           </nav>
@@ -75,12 +75,12 @@ export default function LandingPage() {
 
       <main>
         <section className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-[1.05fr_0.95fr] md:px-6 md:py-20">
+          <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-[1.05fr_0.95fr] md:px-6 md:py-20">
             <div className="flex flex-col justify-center">
-              <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-normal text-slate-950 dark:text-white md:text-6xl">
+              <h1 className="max-w-3xl text-3xl font-bold leading-tight tracking-normal text-slate-950 dark:text-white sm:text-4xl md:text-6xl">
                 ProposalAI
               </h1>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300 sm:text-lg sm:leading-8">
                 An AI-powered technical proposal and cost estimation system for software development firms, built to standardize requirement analysis, proposal drafting, cost planning, timeline prediction, and approval workflows.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -93,16 +93,16 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-950 p-5 shadow-xl">
+            <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-950 p-4 shadow-xl sm:p-5">
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div className="flex items-center gap-3">
                   <img src="/favicon.svg" alt="" className="h-10 w-10 rounded-lg" />
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-semibold text-white">Proposal Workspace</p>
                     <p className="text-xs text-slate-400">Live workflow preview</p>
                   </div>
                 </div>
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Ready</span>
+                <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Ready</span>
               </div>
               <div className="grid gap-4 pt-5 sm:grid-cols-2">
                 {[
@@ -119,8 +119,8 @@ export default function LandingPage() {
               </div>
               <div className="mt-5 space-y-3">
                 {workflow.map((item) => (
-                  <div key={item} className="flex items-center gap-3 rounded-md bg-slate-900 px-4 py-3">
-                    <CheckCircle2 className="h-5 w-5 text-sky-400" />
+                  <div key={item} className="flex items-start gap-3 rounded-md bg-slate-900 px-4 py-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-400" />
                     <span className="text-sm text-slate-200">{item}</span>
                   </div>
                 ))}
@@ -130,7 +130,7 @@ export default function LandingPage() {
         </section>
 
         <section id="modules" className="mx-auto max-w-7xl px-4 py-14 md:px-6">
-          <div className="mb-8 flex items-end justify-between gap-6">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-950 dark:text-white">What The System Covers</h2>
               <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">

@@ -129,7 +129,7 @@ export default function SecurityAuditPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Security & Audit</h1>
         <p className="text-gray-600">Monitor database audit records and role permissions.</p>
@@ -188,9 +188,9 @@ export default function SecurityAuditPage() {
                   className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-48"
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={exportAudit}>
-                <Download className="w-4 h-4 mr-2" />
-                Export
+              <Button variant="outline" size="sm" onClick={exportAudit} aria-label="Export" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </div>

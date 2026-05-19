@@ -143,16 +143,16 @@ export default function ProjectRepository() {
   const totalEstimated = projects.reduce((sum, project) => sum + Number(project.estimated_cost || 0), 0);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold text-gray-900">Project Repository</h1>
           <p className="text-gray-600 mt-1">Historical project records</p>
         </div>
         {canCreate && (
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} aria-label="New Record" className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
             <Plus className="h-4 w-4" />
-            New Record
+            <span className="hidden sm:inline">New Record</span>
           </Button>
         )}
       </div>
@@ -265,7 +265,7 @@ export default function ProjectRepository() {
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={saveProject} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+          <form onSubmit={saveProject} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">{editing ? 'Edit Repository Record' : 'New Repository Record'}</h2>
               <button type="button" onClick={() => setFormOpen(false)} className="rounded-md p-2 hover:bg-gray-100" aria-label="Close">

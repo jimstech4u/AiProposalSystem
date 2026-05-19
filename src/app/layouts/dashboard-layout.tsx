@@ -225,8 +225,56 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
     setStoredTheme(next);
   };
 
+  const searchInput = (
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+      <input
+        type="text"
+        placeholder="Search projects, clients, proposals..."
+        value={globalSearch}
+        onChange={(event) => setGlobalSearch(event.target.value)}
+        onFocus={() => setSearchFocused(true)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && visibleGlobalResults[0]) {
+            navigate(visibleGlobalResults[0].path);
+          }
+          if (event.key === 'Escape') {
+            setSearchFocused(false);
+          }
+        }}
+        className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      {showGlobalResults && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setSearchFocused(false)} />
+          <div className="absolute left-0 right-0 top-11 z-20 rounded-lg border border-gray-200 bg-white shadow-lg">
+            {visibleGlobalResults.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-gray-600">
+                {trimmedGlobalSearch.length < 2 ? 'Type at least 2 characters to search records.' : 'No matching records found.'}
+              </p>
+            ) : (
+              <div className="max-h-96 overflow-y-auto py-1">
+                {visibleGlobalResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    onClick={() => navigate(result.path)}
+                    className="block w-full px-4 py-3 text-left hover:bg-gray-50"
+                  >
+                    <span className="block text-sm font-medium text-gray-900">{result.label}</span>
+                    <span className="mt-0.5 block text-xs text-gray-600">{result.meta}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
-    <div className="h-screen flex overflow-hidden bg-slate-50">
+    <div className="flex h-[100dvh] overflow-hidden bg-slate-50">
       {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />}
       {/* Sidebar */}
       <div
@@ -293,172 +341,129 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top Navigation */}
-        <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="mr-3 rounded-lg p-2 hover:bg-gray-100 md:hidden"
-            aria-label="Open navigation"
-          >
-            <Menu className="h-5 w-5 text-gray-700" />
-          </button>
-          <div className="hidden flex-1 max-w-2xl md:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search projects, clients, proposals..."
-                value={globalSearch}
-                onChange={(event) => setGlobalSearch(event.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && visibleGlobalResults[0]) {
-                    navigate(visibleGlobalResults[0].path);
-                  }
-                  if (event.key === 'Escape') {
-                    setSearchFocused(false);
-                  }
-                }}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-              />
-              {showGlobalResults && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setSearchFocused(false)} />
-                  <div className="absolute left-0 right-0 top-11 z-20 rounded-lg border border-gray-200 bg-white shadow-lg">
-                    {visibleGlobalResults.length === 0 ? (
-                      <p className="px-4 py-3 text-sm text-gray-600">
-                        {trimmedGlobalSearch.length < 2 ? 'Type at least 2 characters to search records.' : 'No matching records found.'}
-                      </p>
-                    ) : (
-                      <div className="max-h-96 overflow-y-auto py-1">
-                        {visibleGlobalResults.map((result) => (
-                          <button
-                            key={result.id}
-                            type="button"
-                            onClick={() => navigate(result.path)}
-                            className="block w-full px-4 py-3 text-left hover:bg-gray-50"
-                          >
-                            <span className="block text-sm font-medium text-gray-900">{result.label}</span>
-                            <span className="mt-0.5 block text-xs text-gray-600">{result.meta}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-4 md:ml-6">
+        <div className="bg-white border-b border-gray-200 px-4 py-3 md:px-6">
+          <div className="flex min-h-10 items-center justify-between">
             <button
-              type="button"
-              onClick={toggleTheme}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label={theme === 'dark' ? 'Use light mode' : 'Use dark mode'}
+              onClick={() => setSidebarOpen(true)}
+              className="mr-3 rounded-lg p-2 hover:bg-gray-100 md:hidden"
+              aria-label="Open navigation"
             >
-              {theme === 'dark' ? <Sun className="w-5 h-5 text-gray-600" /> : <Moon className="w-5 h-5 text-gray-600" />}
+              <Menu className="h-5 w-5 text-gray-700" />
             </button>
-            {/* Notifications */}
-            <div className="relative">
+            <div className="hidden flex-1 max-w-2xl md:block">{searchInput}</div>
+
+            <div className="flex items-center gap-2 md:gap-4 md:ml-6">
               <button
                 type="button"
-                className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                onClick={() => setNotificationsOpen((current) => !current)}
-                aria-label="Open notifications"
+                onClick={toggleTheme}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label={theme === 'dark' ? 'Use light mode' : 'Use dark mode'}
               >
-                <Bell className="w-5 h-5 text-gray-600" />
-                {unreadCount > 0 && <span className="absolute top-1 right-1 min-h-2 min-w-2 rounded-full bg-red-500" />}
+                {theme === 'dark' ? <Sun className="w-5 h-5 text-gray-600" /> : <Moon className="w-5 h-5 text-gray-600" />}
               </button>
-              {notificationsOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
-                  <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
-                    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                      <p className="text-sm font-semibold text-gray-900">Notifications</p>
-                      {unreadCount > 0 && (
-                        <button
-                          type="button"
-                          className="text-xs font-medium text-blue-600 hover:text-blue-700"
-                          onClick={async () => {
-                            const unread = notifications.filter((notification) => !notification.read_at);
-                            await Promise.all(unread.map((notification) => updateRows('notifications', `id=eq.${notification.id}`, { read_at: new Date().toISOString() })));
-                            setNotifications((current) => current.map((notification) => ({ ...notification, read_at: notification.read_at ?? new Date().toISOString() })));
-                          }}
-                        >
-                          Mark all read
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-96 overflow-y-auto py-1">
-                      {notifications.length === 0 ? (
-                        <p className="px-4 py-6 text-center text-sm text-gray-600">No notifications yet.</p>
-                      ) : (
-                        notifications.map((notification) => (
-                          <div key={notification.id} className="border-b border-gray-100 px-4 py-3 last:border-0">
-                            <div className="flex items-start gap-2">
-                              {!notification.read_at && <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-600" />}
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-gray-900">{notification.title}</p>
-                                <p className="mt-1 text-xs text-gray-600">{notification.message}</p>
-                                <p className="mt-1 text-xs text-gray-500">{new Date(notification.created_at).toLocaleString()}</p>
+              {/* Notifications */}
+              <div className="relative">
+                <button
+                  type="button"
+                  className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => setNotificationsOpen((current) => !current)}
+                  aria-label="Open notifications"
+                >
+                  <Bell className="w-5 h-5 text-gray-600" />
+                  {unreadCount > 0 && <span className="absolute top-1 right-1 min-h-2 min-w-2 rounded-full bg-red-500" />}
+                </button>
+                {notificationsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setNotificationsOpen(false)} />
+                    <div className="fixed inset-x-4 top-32 z-20 rounded-lg border border-gray-200 bg-white shadow-lg md:absolute md:inset-x-auto md:right-0 md:top-auto md:mt-2 md:w-80">
+                      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                        <p className="text-sm font-semibold text-gray-900">Notifications</p>
+                        {unreadCount > 0 && (
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                            onClick={async () => {
+                              const unread = notifications.filter((notification) => !notification.read_at);
+                              await Promise.all(unread.map((notification) => updateRows('notifications', `id=eq.${notification.id}`, { read_at: new Date().toISOString() })));
+                              setNotifications((current) => current.map((notification) => ({ ...notification, read_at: notification.read_at ?? new Date().toISOString() })));
+                            }}
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-96 overflow-y-auto py-1">
+                        {notifications.length === 0 ? (
+                          <p className="px-4 py-6 text-center text-sm text-gray-600">No notifications yet.</p>
+                        ) : (
+                          notifications.map((notification) => (
+                            <div key={notification.id} className="border-b border-gray-100 px-4 py-3 last:border-0">
+                              <div className="flex items-start gap-2">
+                                {!notification.read_at && <span className="mt-1.5 h-2 w-2 rounded-full bg-blue-600" />}
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                                  <p className="mt-1 text-xs text-gray-600">{notification.message}</p>
+                                  <p className="mt-1 text-xs text-gray-500">{new Date(notification.created_at).toLocaleString()}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
-                      )}
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
+                  </>
+                )}
+              </div>
 
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
-                  {initials}
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-600" />
-              </button>
-
-              {profileOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setProfileOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="font-medium text-sm">{getRoleName(userRole)}</p>
-                      <p className="text-xs text-gray-500">{displayEmail}</p>
-                    </div>
-                    <Link to="/profile" className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span className="flex-1">View Profile</span>
-                    </Link>
-                    <Link to="/settings" className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2">
-                      <Settings className="w-4 h-4" />
-                      <span className="flex-1">Settings</span>
-                    </Link>
-                    <div className="border-t border-gray-100 mt-1 pt-1">
-                      <button
-                        onClick={onLogout}
-                        className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Sign Out
-                      </button>
-                    </div>
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+                    {initials}
                   </div>
-                </>
-              )}
+                  <ChevronDown className="w-4 h-4 text-gray-600" />
+                </button>
+
+                {profileOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setProfileOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="font-medium text-sm">{getRoleName(userRole)}</p>
+                        <p className="text-xs text-gray-500">{displayEmail}</p>
+                      </div>
+                      <Link to="/profile" className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        <span className="flex-1">View Profile</span>
+                      </Link>
+                      <Link to="/settings" className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        <span className="flex-1">Settings</span>
+                      </Link>
+                      <div className="border-t border-gray-100 mt-1 pt-1">
+                        <button
+                          onClick={onLogout}
+                          className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
+          <div className="mt-3 md:hidden">{searchInput}</div>
         </div>
 
         {/* Page Content */}

@@ -9,7 +9,7 @@ export default function EngineerDashboard() {
   const { projects, proposals, stats, loading } = useDashboardData();
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Engineer Dashboard</h1>
         <p className="text-gray-600 mt-1">Live project and proposal activity.</p>
@@ -20,29 +20,29 @@ export default function EngineerDashboard() {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link to="/requirements/new">
-              <Button variant="primary" className="w-full justify-start" size="lg">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Link to="/requirements/new" aria-label="Analyze Requirements">
+              <Button variant="primary" className="w-full justify-center px-0 sm:justify-start sm:px-6" size="lg">
                 <Plus className="w-5 h-5" />
-                Analyze Requirements
+                <span className="hidden sm:inline">Analyze Requirements</span>
               </Button>
             </Link>
-            <Link to="/proposals/new">
-              <Button variant="secondary" className="w-full justify-start" size="lg">
+            <Link to="/proposals/new" aria-label="Generate Proposal">
+              <Button variant="secondary" className="w-full justify-center px-0 sm:justify-start sm:px-6" size="lg">
                 <FileText className="w-5 h-5" />
-                Generate Proposal
+                <span className="hidden sm:inline">Generate Proposal</span>
               </Button>
             </Link>
-            <Link to="/estimation">
-              <Button variant="secondary" className="w-full justify-start" size="lg">
+            <Link to="/estimation" aria-label="Estimate Costs">
+              <Button variant="secondary" className="w-full justify-center px-0 sm:justify-start sm:px-6" size="lg">
                 <DollarSign className="w-5 h-5" />
-                Estimate Costs
+                <span className="hidden sm:inline">Estimate Costs</span>
               </Button>
             </Link>
-            <Link to="/technology">
-              <Button variant="secondary" className="w-full justify-start" size="lg">
+            <Link to="/technology" aria-label="Tech Recommendations">
+              <Button variant="secondary" className="w-full justify-center px-0 sm:justify-start sm:px-6" size="lg">
                 <Lightbulb className="w-5 h-5" />
-                Tech Recommendations
+                <span className="hidden sm:inline">Tech Recommendations</span>
               </Button>
             </Link>
           </div>

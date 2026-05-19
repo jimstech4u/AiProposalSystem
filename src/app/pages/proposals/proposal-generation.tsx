@@ -239,13 +239,13 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
               <p className="text-sm text-gray-600 mt-2">For {project.client} - Gemini-assisted draft</p>
             </div>
             <div className="flex flex-wrap gap-2 flex-shrink-0">
-              <Button variant="outline" size="sm" onClick={handleExport}>
+              <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
                 <Download className="w-4 h-4" />
-                Export
+                <span className="hidden sm:inline">Export</span>
               </Button>
-              <Button variant="primary" size="sm" onClick={() => saveProposal().then(() => toast.success('Proposal saved.'))}>
+              <Button variant="primary" size="sm" onClick={() => saveProposal().then(() => toast.success('Proposal saved.'))} aria-label="Save" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
                 <Save className="w-4 h-4" />
-                Save
+                <span className="hidden sm:inline">Save</span>
               </Button>
             </div>
           </div>
