@@ -63,7 +63,7 @@ export default function AnalysisResults() {
         </div>
       </div>
 
-      <Card className="border-2 border-purple-100 bg-gradient-to-br from-purple-50 to-blue-50">
+      <Card className="border-2 border-purple-100 bg-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-600" />

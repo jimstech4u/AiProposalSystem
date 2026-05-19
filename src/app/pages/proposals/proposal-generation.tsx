@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info } from 'lucide-react';
+import { Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
@@ -66,6 +66,7 @@ function defaultContent(projectName: string, clientName: string): ProposalConten
 
 export default function ProposalGeneration() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const isEditingExistingProposal = Boolean(id && id !== 'new');
   const latestAnalysis = readJson<any>('latestAnalysis', null);
   const analysisProject = latestAnalysis?.project ?? { name: 'Untitled Project', client: 'Client not selected' };
@@ -89,6 +90,7 @@ export default function ProposalGeneration() {
   const selectedProject = useMemo(() => projects.find((item) => item.id === projectId), [projectId, projects]);
   const selectedClient = useMemo(() => clients.find((client) => client.id === selectedClientId), [clients, selectedClientId]);
   const hasUsableAnalysis = Boolean(latestAnalysis?.summary?.totalRequirements && analysisProject.name !== 'Untitled Project');
+  const hasProposalSource = Boolean(projectId || hasUsableAnalysis);
   const project = useMemo(
     () => ({
       name: selectedProject?.title ?? analysisProject.name,
@@ -325,6 +327,33 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
     toast.success('Proposal exported.');
   };
 
+  const clearLocalProposalFlow = () => {
+    const confirmed = window.confirm(
+      'Clear the current local proposal draft and selected analysis? Saved database proposals will not be deleted.'
+    );
+    if (!confirmed) return;
+
+    [
+      'latestProposal',
+      'latestAnalysis',
+      'latestProjectId',
+      'latestCostModules',
+      'latestCostBreakdown',
+      'latestTimelinePhases',
+      'latestTimelineMilestones',
+      'latestTechStack',
+      'latestTechAlternatives',
+    ].forEach(removeJson);
+
+    setProjectId(null);
+    setSelectedClientId('');
+    setProposalId('');
+    setProposalTitle('New Proposal');
+    setContent(defaultContent('New Proposal', 'Client not selected'));
+    toast.success('Local proposal draft cleared.');
+    navigate('/proposals/new', { replace: true });
+  };
+
   return (
     <div className="flex min-h-[calc(100dvh-4rem)] flex-col xl:flex-row">
       <div className="min-w-0 flex-1 overflow-y-auto">
@@ -343,15 +372,19 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 xl:shrink-0">
-              <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export" className="h-10 w-10 px-0 sm:w-auto sm:px-3">
+              <Button variant="outline" size="sm" onClick={clearLocalProposalFlow} aria-label="Clear Draft" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={isEditingExistingProposal}>
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Clear Draft</span>
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource}>
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
-              <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-10 w-10 px-0 sm:w-auto sm:px-3">
+              <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource}>
                 <Save className="w-4 h-4" />
                 <span className="hidden sm:inline">Save</span>
               </Button>
-              <Button variant="ai" size="sm" onClick={submitForReview} aria-label="Submit for Review" className="h-10 w-10 px-0 sm:w-auto sm:px-3">
+              <Button variant="ai" size="sm" onClick={submitForReview} aria-label="Submit for Review" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource}>
                 <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">Submit for Review</span>
               </Button>
@@ -364,7 +397,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
             </div>
           </div>
 
-          {!projectId && !hasUsableAnalysis && (
+          {!hasProposalSource && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               <div className="flex gap-3">
                 <Info className="mt-0.5 h-5 w-5 shrink-0" />
@@ -383,39 +416,45 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 Proposal Intake
               </CardTitle>
               <p className="text-sm leading-6 text-gray-600">
-                Choose the source records that should drive this proposal. The client controls who the proposal is for; the analysis controls requirements, scope, and AI context.
+                Choose the requirements analysis that should drive this proposal. The selected analysis supplies the client, scope, requirements, and AI context.
               </p>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Client</label>
-                <select
-                  value={selectedClientId}
-                  onChange={(event) => setSelectedClientId(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Use analysis client</option>
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>{client.company_name}</option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-xs leading-5 text-gray-500">Use the analysis client or override it with an existing client record.</p>
-              </div>
-              <div>
+            <CardContent className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-[1fr_auto]">
+              <div className="min-w-0">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Requirements Analysis</label>
-                <select
-                  value={projectId ?? ''}
-                  onChange={(event) => setProjectId(event.target.value || null)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Use latest analysis</option>
-                  {projects.map((item) => (
-                    <option key={item.id} value={item.id}>{item.title}</option>
-                  ))}
-                </select>
-                <p className="mt-1.5 text-xs leading-5 text-gray-500">Select the project analysis that supplies scope, requirements, and complexity context.</p>
+                {projects.length > 0 ? (
+                  <select
+                    value={projectId ?? ''}
+                    onChange={(event) => setProjectId(event.target.value || null)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {hasUsableAnalysis && (
+                      <option value="">
+                        Current analysis: {analysisProject.name} for {analysisProject.client}
+                      </option>
+                    )}
+                    {!hasUsableAnalysis && <option value="">Select a saved analysis</option>}
+                    {projects.map((item) => (
+                      <option key={item.id} value={item.id}>{item.title}</option>
+                    ))}
+                  </select>
+                ) : hasUsableAnalysis ? (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm">
+                    <p className="font-medium text-gray-900">{analysisProject.name}</p>
+                    <p className="mt-1 text-xs text-gray-600">
+                      Client: {analysisProject.client} - {latestAnalysis?.summary?.totalRequirements ?? 0} requirements
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                    No requirement analysis is selected yet.
+                  </div>
+                )}
+                <p className="mt-1.5 text-xs leading-5 text-gray-500">
+                  This source controls the proposal client, scope, requirements, and AI context.
+                </p>
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end md:w-44">
                 <Link to="/requirements/new" state={{ returnTo: '/proposals/new' }} className="w-full">
                   <Button variant="outline" className="w-full">
                     <FileText className="h-4 w-4" />
@@ -427,71 +466,76 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-purple-200 bg-white">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Sparkles className="w-6 h-6 text-purple-600" />
-                AI Content Generation
-              </CardTitle>
-              <p className="text-sm leading-6 text-gray-600">
-                Tone changes the writing style. Detail level controls how much explanation each generated section includes.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
-                  <select value={tone} onChange={(event) => setTone(event.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    <option>Professional & Formal</option>
-                    <option>Conversational & Friendly</option>
-                    <option>Technical & Detailed</option>
-                    <option>Executive & High-level</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Detail Level</label>
-                  <select value={detailLevel} onChange={(event) => setDetailLevel(event.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    <option>Comprehensive</option>
-                    <option>Detailed</option>
-                    <option>Moderate</option>
-                    <option>Concise</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <Button variant="ai" onClick={() => handleGenerateSection()} disabled={generating || (!projectId && !hasUsableAnalysis)} className="flex-1">
-                  {generating ? 'Generating...' : 'Generate Section'}
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={handleGenerateAll} disabled={generating || (!projectId && !hasUsableAnalysis)}>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {hasProposalSource && (
+            <>
+              <Card className="border-2 border-purple-200 bg-white">
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Sparkles className="w-6 h-6 text-purple-600" />
+                    AI Content Generation
+                  </CardTitle>
+                  <p className="text-sm leading-6 text-gray-600">
+                    Generate all proposal sections from the selected requirements analysis, then edit each section before saving or submitting for review.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                      <select value={tone} onChange={(event) => setTone(event.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option>Professional & Formal</option>
+                        <option>Conversational & Friendly</option>
+                        <option>Technical & Detailed</option>
+                        <option>Executive & High-level</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Detail Level</label>
+                      <select value={detailLevel} onChange={(event) => setDetailLevel(event.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option>Comprehensive</option>
+                        <option>Detailed</option>
+                        <option>Moderate</option>
+                        <option>Concise</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                    <Button variant="ai" onClick={() => handleGenerateSection()} disabled={generating} className="flex-1">
+                      {generating ? 'Generating...' : 'Generate Section'}
+                    </Button>
+                    <Button variant="outline" className="flex-1" onClick={handleGenerateAll} disabled={generating}>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate All
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="pb-4">
-              <div className="flex items-start justify-between gap-3">
-                <CardTitle className="text-xl">{activeSectionName}</CardTitle>
-                <Badge variant="purple" className="gap-1 px-3 py-1">
-                  <Sparkles className="w-3 h-3" />
-                  Editable AI Draft
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <textarea
-                className="h-72 w-full rounded-lg border border-gray-300 p-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 sm:h-96 sm:p-5"
-                value={content[activeSection] ?? ''}
-                placeholder="Generate this section with Gemini or write the content manually."
-                onChange={(event) => setContent((current) => ({ ...current, [activeSection]: event.target.value }))}
-              />
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <CardTitle className="text-xl">{activeSectionName}</CardTitle>
+                    <Badge variant="purple" className="gap-1 px-3 py-1">
+                      <Sparkles className="w-3 h-3" />
+                      Editable Draft
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    className="h-72 w-full rounded-lg border border-gray-300 p-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 sm:h-96 sm:p-5"
+                    value={content[activeSection] ?? ''}
+                    placeholder="Generate this section with Gemini or write the content manually."
+                    onChange={(event) => setContent((current) => ({ ...current, [activeSection]: event.target.value }))}
+                  />
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
 
+      {hasProposalSource && (
       <div className="w-full border-t border-gray-200 bg-gray-50 p-4 sm:p-6 xl:w-80 xl:border-l xl:border-t-0 2xl:w-96">
         <div>
           <h3 className="font-semibold text-gray-900 mb-4 text-lg">Proposal Sections</h3>
@@ -525,6 +569,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
