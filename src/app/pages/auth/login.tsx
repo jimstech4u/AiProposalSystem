@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { getUserProfile, signInWithPassword, type AppRole } from '../../../lib/supabase';
+import { getUserProfile, resendSignupOtp, signInWithPassword, verifyEmailOtp, type AppRole } from '../../../lib/supabase';
 import { AuthBrand } from '../../components/auth-brand';
 
 interface LoginPageProps {
@@ -17,6 +17,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+
+  const isEmailNotConfirmedError = (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.toLowerCase().includes('email not confirmed');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +39,45 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       onLogin(profile?.role ?? metadataRole ?? 'engineer', session.access_token, session.user.email ?? email, session.user.id);
       toast.success('Signed in successfully');
     } catch (error) {
+      if (isEmailNotConfirmedError(error)) {
+        try {
+          await resendSignupOtp(email);
+          setAwaitingConfirmation(true);
+          toast.success('A six-digit verification code was sent to your email.');
+        } catch (resendError) {
+          toast.error('Your email is not confirmed, and a new code could not be sent.');
+          console.warn(resendError);
+        }
+        setSubmitting(false);
+        return;
+      }
       toast.error('Sign in failed. Check your email and password.');
+      console.warn(error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerifyConfirmation = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (verificationCode.trim().length !== 6) {
+      toast.error('Enter the six-digit verification code.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const session = await verifyEmailOtp({
+        email,
+        token: verificationCode.trim(),
+        type: 'signup',
+      });
+      const [profile] = await getUserProfile(session.user.id, session.access_token);
+      const metadataRole = session.user.user_metadata?.role as AppRole | undefined;
+      onLogin(profile?.role ?? metadataRole ?? 'engineer', session.access_token, session.user.email ?? email, session.user.id);
+      toast.success('Email verified and signed in successfully.');
+    } catch (error) {
+      toast.error('Verification failed. Check the code and try again.');
       console.warn(error);
     } finally {
       setSubmitting(false);
@@ -58,6 +103,38 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <p className="text-gray-600 mt-1">Sign in to your account</p>
           </div>
 
+          {awaitingConfirmation ? (
+            <form onSubmit={handleVerifyConfirmation} className="space-y-5">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Verify your email</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  A six-digit code was sent to {email}. Enter it to confirm your account.
+                </p>
+              </div>
+              <div>
+                <label htmlFor="verification-code" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Six-digit code
+                </label>
+                <Input
+                  id="verification-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={verificationCode}
+                  onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setAwaitingConfirmation(false)}>
+                  Back to sign in
+                </Button>
+                <Button type="submit" className="flex-1" disabled={submitting}>
+                  {submitting ? 'Verifying...' : 'Verify Email'}
+                </Button>
+              </div>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -116,6 +193,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               {submitting ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

@@ -137,6 +137,19 @@ export async function requestPasswordRecovery(email: string) {
   }
 }
 
+export async function resendSignupOtp(email: string) {
+  const response = await fetch(authUrl('/resend'), {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ email, type: 'signup' }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || 'Unable to resend signup verification code.');
+  }
+}
+
 export async function verifyEmailOtp(input: {
   email: string;
   token: string;
