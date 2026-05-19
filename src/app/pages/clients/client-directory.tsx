@@ -208,7 +208,7 @@ export default function ClientDirectory() {
             <Card key={client.id} className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
                     {client.company_name.charAt(0)}
                   </div>
                   <Badge variant="default">{client.segment || 'Client'}</Badge>

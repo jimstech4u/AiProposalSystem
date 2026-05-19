@@ -383,8 +383,8 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
   };
 
   return (
-    <div className="flex min-h-[calc(100dvh-4rem)] flex-col xl:flex-row">
-      <div className="min-w-0 flex-1 overflow-y-auto">
+    <div className="min-h-[calc(100dvh-4rem)]">
+      <div className="min-w-0">
         <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6 lg:p-8">
           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -496,6 +496,48 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
 
           {hasProposalSource && (
             <>
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl">Proposal Sections</CardTitle>
+                  <p className="text-sm leading-6 text-gray-600">Pick a section to edit. Generate one section at a time when you want more control.</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {sections.map((section) => (
+                      <button
+                        key={section.id}
+                        onClick={() => setActiveSection(section.id)}
+                        className={`w-full rounded-lg border px-4 py-2.5 text-left text-sm transition-colors ${
+                          activeSection === section.id ? 'border-blue-200 bg-blue-50 font-medium text-blue-700' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {section.name}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <CardTitle className="text-xl">{activeSectionName}</CardTitle>
+                    <Badge variant="purple" className="gap-1 px-3 py-1">
+                      <Sparkles className="w-3 h-3" />
+                      Editable Draft
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    className="h-72 w-full rounded-lg border border-gray-300 p-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 sm:h-96 sm:p-5"
+                    value={content[activeSection] ?? ''}
+                    placeholder="Generate this section with Gemini or write the content manually."
+                    onChange={(event) => setContent((current) => ({ ...current, [activeSection]: event.target.value }))}
+                  />
+                </CardContent>
+              </Card>
+
               <Card className="border-2 border-purple-200 bg-white">
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-xl">
@@ -541,63 +583,23 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
 
               <Card>
                 <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-xl">{activeSectionName}</CardTitle>
-                    <Badge variant="purple" className="gap-1 px-3 py-1">
-                      <Sparkles className="w-3 h-3" />
-                      Editable Draft
-                    </Badge>
-                  </div>
+                  <CardTitle className="text-xl">Source Data</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <textarea
-                    className="h-72 w-full rounded-lg border border-gray-300 p-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 sm:h-96 sm:p-5"
-                    value={content[activeSection] ?? ''}
-                    placeholder="Generate this section with Gemini or write the content manually."
-                    onChange={(event) => setContent((current) => ({ ...current, [activeSection]: event.target.value }))}
-                  />
+                <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="font-medium text-gray-900">Requirements Analysis</p>
+                    <p className="mt-1.5 text-xs text-gray-600">{latestAnalysis?.summary?.totalRequirements ?? 0} requirements identified</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="font-medium text-gray-900">Client</p>
+                    <p className="mt-1.5 text-xs text-gray-600">{project.client}</p>
+                  </div>
                 </CardContent>
               </Card>
             </>
           )}
         </div>
       </div>
-
-      {hasProposalSource && (
-      <div className="w-full border-t border-gray-200 bg-gray-50 p-4 sm:p-6 xl:w-80 xl:border-l xl:border-t-0 2xl:w-96">
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-4 text-lg">Proposal Sections</h3>
-          <p className="mb-4 text-sm leading-6 text-gray-600">Pick a section to edit. Generate one section at a time when you want more control.</p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${
-                  activeSection === section.id ? 'bg-blue-50 text-blue-700 font-medium border border-blue-200' : 'text-gray-600 hover:bg-gray-100 border border-transparent'
-                }`}
-              >
-                {section.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-4 text-lg">Source Data</h3>
-          <div className="space-y-3 text-sm">
-            <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <p className="font-medium text-gray-900">Requirements Analysis</p>
-              <p className="text-gray-600 text-xs mt-1.5">{latestAnalysis?.summary?.totalRequirements ?? 0} requirements identified</p>
-            </div>
-            <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <p className="font-medium text-gray-900">Client</p>
-              <p className="text-gray-600 text-xs mt-1.5">{project.client}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      )}
     </div>
   );
 }
