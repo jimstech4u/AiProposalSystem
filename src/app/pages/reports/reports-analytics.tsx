@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Download, Pencil, Plus, Trash2, TrendingUp, X } from 'lucide-react';
+import { Download, Pencil, Plus, Search, Trash2, TrendingUp, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDashboardData } from '../dashboards/use-dashboard-data';
 import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
@@ -42,6 +42,7 @@ export default function ReportsAnalytics() {
   const [editing, setEditing] = useState<ReportConfig | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
   const role = getStoredRole();
   const session = getStoredSession();
   const canCreate = can(role, 'reports', 'create');
@@ -62,6 +63,22 @@ export default function ReportsAnalytics() {
   useEffect(() => {
     loadReports();
   }, []);
+
+  const filteredReports = useMemo(() => {
+    const value = search.toLowerCase().trim();
+    if (!value) return reports;
+
+    return reports.filter((report) =>
+      [
+        report.name,
+        report.description,
+        report.report_type,
+        report.schedule,
+        ...(report.recipients ?? []),
+        JSON.stringify(report.filters ?? {}),
+      ].filter(Boolean).some((field) => String(field).toLowerCase().includes(value))
+    );
+  }, [reports, search]);
 
   const statusData = Object.entries(
     proposals.reduce<Record<string, number>>((acc, proposal) => {
@@ -244,13 +261,27 @@ export default function ReportsAnalytics() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Saved Report Configurations</CardTitle>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>Saved Report Configurations</CardTitle>
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search reports..."
+                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {reportsLoading ? (
             <p className="text-sm text-gray-600">Loading saved reports...</p>
           ) : reports.length === 0 ? (
             <p className="text-sm text-gray-600">No saved report configurations found.</p>
+          ) : filteredReports.length === 0 ? (
+            <p className="text-sm text-gray-600">No saved reports match your search.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -264,7 +295,7 @@ export default function ReportsAnalytics() {
                   </tr>
                 </thead>
                 <tbody>
-                  {reports.map((report) => (
+                  {filteredReports.map((report) => (
                     <tr key={report.id} className="border-b border-gray-100">
                       <td className="py-3 px-4">
                         <p className="font-medium text-gray-900">{report.name}</p>

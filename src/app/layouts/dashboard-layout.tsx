@@ -1,5 +1,5 @@
-import { useEffect, useState, ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useMemo, useState, ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileText,
@@ -38,6 +38,14 @@ interface DashboardLayoutProps {
   onLogout: () => void;
 }
 
+type SearchResult = {
+  id: string;
+  label: string;
+  meta: string;
+  path: string;
+  haystack: string;
+};
+
 const navigationItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['engineer', 'project-manager', 'sales', 'admin'] },
   { icon: Plus, label: 'New Proposal', path: '/proposals/new', variant: 'primary', roles: ['engineer', 'project-manager', 'sales'] },
@@ -61,11 +69,32 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; read_at?: string | null; created_at: string }>>([]);
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [globalResults, setGlobalResults] = useState<SearchResult[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => getStoredTheme());
   const location = useLocation();
+  const navigate = useNavigate();
   const displayEmail = email ?? 'user@company.com';
   const initials = displayEmail.slice(0, 2).toUpperCase();
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
+  const allowedNavigation = useMemo(() => navigationItems.filter((item) => item.roles.includes(userRole)), [userRole]);
+  const trimmedGlobalSearch = globalSearch.trim().toLowerCase();
+  const navResults = useMemo<SearchResult[]>(() => {
+    if (!trimmedGlobalSearch) return [];
+
+    return allowedNavigation
+      .filter((item) => item.label.toLowerCase().includes(trimmedGlobalSearch) || item.path.toLowerCase().includes(trimmedGlobalSearch))
+      .map((item) => ({
+        id: `nav-${item.path}`,
+        label: item.label,
+        meta: 'Page',
+        path: item.path,
+        haystack: `${item.label} ${item.path}`,
+      }));
+  }, [allowedNavigation, trimmedGlobalSearch]);
+  const visibleGlobalResults = [...navResults, ...globalResults].slice(0, 8);
+  const showGlobalResults = searchFocused && Boolean(globalSearch.trim());
 
   const getRoleName = (role: string) => {
     switch (role) {
@@ -105,6 +134,91 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
     loadNotifications();
   }, [location.pathname]);
 
+  useEffect(() => {
+    setGlobalSearch('');
+    setSearchFocused(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadGlobalResults() {
+      const value = globalSearch.trim().toLowerCase();
+      if (value.length < 2) {
+        setGlobalResults([]);
+        return;
+      }
+
+      try {
+        const requests: Promise<SearchResult[]>[] = [
+          selectRows<any>('projects', 'select=id,title,status,project_type,description&order=created_at.desc&limit=25').then((rows) =>
+            rows.map((project) => ({
+              id: `project-${project.id}`,
+              label: project.title ?? 'Untitled project',
+              meta: `Project${project.status ? ` / ${project.status}` : ''}`,
+              path: `/repository/${project.id}`,
+              haystack: [project.title, project.status, project.project_type, project.description].filter(Boolean).join(' '),
+            }))
+          ),
+          selectRows<any>('proposals', 'select=id,title,status,template_name,executive_summary&order=created_at.desc&limit=25').then((rows) =>
+            rows.map((proposal) => ({
+              id: `proposal-${proposal.id}`,
+              label: proposal.title ?? 'Untitled proposal',
+              meta: `Proposal${proposal.status ? ` / ${proposal.status}` : ''}`,
+              path: `/proposals/${proposal.id}`,
+              haystack: [proposal.title, proposal.status, proposal.template_name, proposal.executive_summary].filter(Boolean).join(' '),
+            }))
+          ),
+        ];
+
+        if (['sales', 'project-manager', 'admin'].includes(userRole)) {
+          requests.push(
+            selectRows<any>('clients', 'select=id,company_name,contact_name,industry,email&order=created_at.desc&limit=25').then((rows) =>
+              rows.map((client) => ({
+                id: `client-${client.id}`,
+                label: client.company_name ?? 'Unnamed client',
+                meta: `Client${client.industry ? ` / ${client.industry}` : ''}`,
+                path: `/clients/${client.id}`,
+                haystack: [client.company_name, client.contact_name, client.industry, client.email].filter(Boolean).join(' '),
+              }))
+            )
+          );
+        }
+
+        if (['project-manager', 'admin'].includes(userRole)) {
+          requests.push(
+            selectRows<any>('proposal_templates', 'select=id,name,category,description&order=updated_at.desc&limit=25').then((rows) =>
+              rows.map((template) => ({
+                id: `template-${template.id}`,
+                label: template.name ?? 'Untitled template',
+                meta: `Template${template.category ? ` / ${template.category}` : ''}`,
+                path: '/templates',
+                haystack: [template.name, template.category, template.description].filter(Boolean).join(' '),
+              }))
+            )
+          );
+        }
+
+        const settled = await Promise.allSettled(requests);
+        if (!active) return;
+
+        const results = settled
+          .flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
+          .filter((result) => result.haystack.toLowerCase().includes(value));
+        setGlobalResults(results);
+      } catch (error) {
+        if (active) setGlobalResults([]);
+        console.warn('Global search failed:', error);
+      }
+    }
+
+    const timer = window.setTimeout(loadGlobalResults, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [globalSearch, userRole]);
+
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
@@ -139,9 +253,7 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-          {navigationItems
-            .filter(item => item.roles.includes(userRole))
-            .map((item) => {
+          {allowedNavigation.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
             
@@ -197,8 +309,45 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
               <input
                 type="text"
                 placeholder="Search projects, clients, proposals..."
+                value={globalSearch}
+                onChange={(event) => setGlobalSearch(event.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && visibleGlobalResults[0]) {
+                    navigate(visibleGlobalResults[0].path);
+                  }
+                  if (event.key === 'Escape') {
+                    setSearchFocused(false);
+                  }
+                }}
                 className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
               />
+              {showGlobalResults && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setSearchFocused(false)} />
+                  <div className="absolute left-0 right-0 top-11 z-20 rounded-lg border border-gray-200 bg-white shadow-lg">
+                    {visibleGlobalResults.length === 0 ? (
+                      <p className="px-4 py-3 text-sm text-gray-600">
+                        {trimmedGlobalSearch.length < 2 ? 'Type at least 2 characters to search records.' : 'No matching records found.'}
+                      </p>
+                    ) : (
+                      <div className="max-h-96 overflow-y-auto py-1">
+                        {visibleGlobalResults.map((result) => (
+                          <button
+                            key={result.id}
+                            type="button"
+                            onClick={() => navigate(result.path)}
+                            className="block w-full px-4 py-3 text-left hover:bg-gray-50"
+                          >
+                            <span className="block text-sm font-medium text-gray-900">{result.label}</span>
+                            <span className="mt-0.5 block text-xs text-gray-600">{result.meta}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Copy, Download, FileText, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Copy, Download, FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -55,6 +55,7 @@ export default function TemplateManagementPage() {
   const [editing, setEditing] = useState<TemplateRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
   const role = getStoredRole();
   const session = getStoredSession();
   const canCreate = can(role, 'templates', 'create');
@@ -77,6 +78,20 @@ export default function TemplateManagementPage() {
   }, []);
 
   const categories = useMemo(() => new Set(templates.map((template) => template.category).filter(Boolean)).size, [templates]);
+  const filteredTemplates = useMemo(() => {
+    const value = search.toLowerCase().trim();
+    if (!value) return templates;
+
+    return templates.filter((template) =>
+      [
+        template.name,
+        template.category,
+        template.description,
+        ...(template.sections ?? []),
+        ...Object.keys(template.placeholders ?? {}),
+      ].filter(Boolean).some((field) => String(field).toLowerCase().includes(value))
+    );
+  }, [search, templates]);
 
   const openCreate = () => {
     setEditing(null);
@@ -204,6 +219,17 @@ export default function TemplateManagementPage() {
         </Card>
       </div>
 
+      <div className="relative max-w-xl">
+        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search templates..."
+          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
       {loading ? (
         <Card className="p-6 text-sm text-gray-600">Loading templates...</Card>
       ) : templates.length === 0 ? (
@@ -212,9 +238,15 @@ export default function TemplateManagementPage() {
           <h2 className="mt-3 font-semibold text-gray-900">No templates found</h2>
           <p className="mt-1 text-sm text-gray-600">Create the first proposal template to make proposal generation repeatable.</p>
         </Card>
+      ) : filteredTemplates.length === 0 ? (
+        <Card className="p-10 text-center">
+          <FileText className="mx-auto h-10 w-10 text-gray-400" />
+          <h2 className="mt-3 font-semibold text-gray-900">No templates match your search</h2>
+          <p className="mt-1 text-sm text-gray-600">Try a different name, category, section, or placeholder.</p>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {templates.map((template) => (
+          {filteredTemplates.map((template) => (
             <Card key={template.id} className="p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">

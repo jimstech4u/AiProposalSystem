@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Shield, FileText, Download, AlertTriangle, Check, X, UserCog, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Shield, FileText, Download, AlertTriangle, Check, X, UserCog, Trash2, Search } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { deleteRows, selectRows, updateRows, type AppRole } from '../../../lib/supabase';
@@ -41,6 +41,8 @@ export default function SecurityAuditPage() {
   const [users, setUsers] = useState<UserProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [auditSearch, setAuditSearch] = useState('');
+  const [userSearch, setUserSearch] = useState('');
 
   async function loadAuditLogs() {
       try {
@@ -68,6 +70,28 @@ export default function SecurityAuditPage() {
     loadAuditLogs();
     loadUsers();
   }, []);
+
+  const filteredAuditLogs = useMemo(() => {
+    const value = auditSearch.toLowerCase().trim();
+    if (!value) return auditLogs;
+
+    return auditLogs.filter((log) =>
+      [log.action, log.entity_type, log.entity_id, log.created_at]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(value))
+    );
+  }, [auditLogs, auditSearch]);
+
+  const filteredUsers = useMemo(() => {
+    const value = userSearch.toLowerCase().trim();
+    if (!value) return users;
+
+    return users.filter((user) =>
+      [user.full_name, user.email, user.role, user.department, user.job_title, user.is_active ? 'active' : 'inactive']
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(value))
+    );
+  }, [users, userSearch]);
 
   const updateUser = async (user: UserProfileRow, changes: Partial<UserProfileRow>) => {
     try {
@@ -151,21 +175,35 @@ export default function SecurityAuditPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-semibold">Audit Log</h2>
-            <Button variant="outline" size="sm" onClick={exportAudit}>
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="search"
+                  value={auditSearch}
+                  onChange={(event) => setAuditSearch(event.target.value)}
+                  placeholder="Search audit..."
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-48"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={exportAudit}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
 
           {loading ? (
             <p className="text-sm text-gray-600">Loading audit logs...</p>
           ) : auditLogs.length === 0 ? (
             <p className="text-sm text-gray-600">No audit records have been inserted yet.</p>
+          ) : filteredAuditLogs.length === 0 ? (
+            <p className="text-sm text-gray-600">No audit records match your search.</p>
           ) : (
             <div className="space-y-3">
-              {auditLogs.map((log) => (
+              {filteredAuditLogs.map((log) => (
                 <div key={log.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
                     <FileText className="w-4 h-4 text-slate-700" />
@@ -214,14 +252,28 @@ export default function SecurityAuditPage() {
       </div>
 
       <Card className="mt-6 p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <UserCog className="h-5 w-5 text-slate-700" />
-          <h2 className="font-semibold">User Access Management</h2>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <UserCog className="h-5 w-5 text-slate-700" />
+            <h2 className="font-semibold">User Access Management</h2>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="search"
+              value={userSearch}
+              onChange={(event) => setUserSearch(event.target.value)}
+              placeholder="Search users..."
+              className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
         {usersLoading ? (
           <p className="text-sm text-gray-600">Loading users...</p>
         ) : users.length === 0 ? (
           <p className="text-sm text-gray-600">No user profiles found.</p>
+        ) : filteredUsers.length === 0 ? (
+          <p className="text-sm text-gray-600">No user profiles match your search.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -234,7 +286,7 @@ export default function SecurityAuditPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id} className="border-b">
                     <td className="py-3">
                       <p className="font-medium text-gray-900">{user.full_name}</p>

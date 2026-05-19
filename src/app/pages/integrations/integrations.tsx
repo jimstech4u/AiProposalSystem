@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Plug, Plus, Settings, Trash2, X, XCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, Plug, Plus, Search, Settings, Trash2, X, XCircle, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -38,6 +38,7 @@ export default function IntegrationsPage() {
   const [editing, setEditing] = useState<IntegrationRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
   const role = getStoredRole();
   const session = getStoredSession();
   const canCreate = can(role, 'integrations', 'create');
@@ -67,6 +68,20 @@ export default function IntegrationsPage() {
     }),
     [integrations]
   );
+  const filteredIntegrations = useMemo(() => {
+    const value = search.toLowerCase().trim();
+    if (!value) return integrations;
+
+    return integrations.filter((integration) =>
+      [
+        integration.provider,
+        integration.category,
+        integration.status,
+        integration.sync_schedule,
+        JSON.stringify(integration.config ?? {}),
+      ].filter(Boolean).some((field) => String(field).toLowerCase().includes(value))
+    );
+  }, [integrations, search]);
 
   const openCreate = () => {
     setEditing(null);
@@ -204,6 +219,17 @@ export default function IntegrationsPage() {
         </Card>
       </div>
 
+      <div className="relative max-w-xl">
+        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search integrations..."
+          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
       {loading ? (
         <Card className="p-6 text-sm text-gray-600">Loading integrations...</Card>
       ) : integrations.length === 0 ? (
@@ -212,9 +238,15 @@ export default function IntegrationsPage() {
           <h2 className="mt-3 font-semibold text-gray-900">No integrations configured</h2>
           <p className="mt-1 text-sm text-gray-600">Create integration records for CRM, project management, accounting, calendar, email, or webhook services.</p>
         </Card>
+      ) : filteredIntegrations.length === 0 ? (
+        <Card className="p-10 text-center">
+          <Plug className="mx-auto h-10 w-10 text-gray-400" />
+          <h2 className="mt-3 font-semibold text-gray-900">No integrations match your search</h2>
+          <p className="mt-1 text-sm text-gray-600">Try a provider, category, status, schedule, or config value.</p>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {integrations.map((integration) => (
+          {filteredIntegrations.map((integration) => (
             <Card key={integration.id} className="p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100">

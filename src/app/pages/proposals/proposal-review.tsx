@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Search } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -21,6 +21,7 @@ export default function ProposalReviewPage() {
   const [selectedProposal, setSelectedProposal] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState('');
+  const [search, setSearch] = useState('');
   const session = getStoredSession();
 
   useEffect(() => {
@@ -39,6 +40,16 @@ export default function ProposalReviewPage() {
     loadProposals();
   }, []);
 
+  const filteredProposals = useMemo(() => {
+    const value = search.toLowerCase().trim();
+    if (!value) return proposals;
+
+    return proposals.filter((proposal) =>
+      [proposal.title, proposal.status, proposal.executive_summary, proposal.version]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(value))
+    );
+  }, [proposals, search]);
   const selected = useMemo(() => proposals.find((proposal) => proposal.id === selectedProposal), [proposals, selectedProposal]);
 
   const setDecision = async (id: string, status: 'approved' | 'rejected' | 'in_review', decision: 'approved' | 'rejected' | 'revision_requested') => {
@@ -75,14 +86,28 @@ export default function ProposalReviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <Card className="p-4">
-            <h2 className="font-semibold mb-4">Pending Approvals ({proposals.length})</h2>
+            <div className="mb-4 space-y-3">
+              <h2 className="font-semibold">Pending Approvals ({filteredProposals.length})</h2>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search approvals..."
+                  className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
             {loading ? (
               <p className="text-sm text-gray-600">Loading proposals...</p>
             ) : proposals.length === 0 ? (
               <p className="text-sm text-gray-600">No proposals are waiting for approval.</p>
+            ) : filteredProposals.length === 0 ? (
+              <p className="text-sm text-gray-600">No pending proposals match your search.</p>
             ) : (
               <div className="space-y-3">
-                {proposals.map((proposal) => (
+                {filteredProposals.map((proposal) => (
                   <button
                     key={proposal.id}
                     onClick={() => setSelectedProposal(proposal.id)}
