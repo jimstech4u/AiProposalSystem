@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getUserProfile, signUpWithPassword, verifyEmailOtp, type AppRole } from '../../../lib/supabase';
 import { AuthBrand } from '../../components/auth-brand';
@@ -85,7 +86,10 @@ export default function RegisterPage({ onLogin }: RegisterPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <Link to="/" className="absolute right-4 top-4 rounded-full p-2 text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white" aria-label="Cancel and return to landing page">
+        <X className="h-5 w-5" />
+      </Link>
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <AuthBrand />

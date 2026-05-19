@@ -6,6 +6,7 @@ import LoginPage from './pages/auth/login';
 import RegisterPage from './pages/auth/register';
 import ForgotPasswordPage from './pages/auth/forgot-password';
 import ProfilePage from './pages/auth/profile';
+import LandingPage from './pages/landing/landing-page';
 import DashboardLayout from './layouts/dashboard-layout';
 import EngineerDashboard from './pages/dashboards/engineer-dashboard';
 import ProjectManagerDashboard from './pages/dashboards/project-manager-dashboard';
@@ -69,6 +70,7 @@ export default function App() {
     <>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
           {/* Auth Routes */}
           <Route 
             path="/login" 

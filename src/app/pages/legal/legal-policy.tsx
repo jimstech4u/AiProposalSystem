@@ -99,12 +99,14 @@ export default function LegalPolicyPage({ type }: LegalPolicyPageProps) {
     },
   }[type];
   const Icon = policy.icon;
+  const backPath = type === 'terms' || type === 'privacy' ? '/register' : '/';
+  const backLabel = type === 'terms' || type === 'privacy' ? 'Back to sign up' : 'Back to dashboard';
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-3xl space-y-6">
-        <Link to="/login">
-          <Button variant="ghost">Back to sign in</Button>
+        <Link to={backPath}>
+          <Button variant="ghost">{backLabel}</Button>
         </Link>
 
         <Card>
