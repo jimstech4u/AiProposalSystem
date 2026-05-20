@@ -12,9 +12,21 @@ type Proposal = {
   title: string;
   status: 'draft' | 'in_review' | 'approved' | 'rejected' | 'sent' | 'accepted' | 'declined';
   executive_summary?: string | null;
+  template_name?: string | null;
+  generated_content?: Record<string, string> | null;
   created_at: string;
   version: number;
 };
+
+const reviewSections = [
+  ['executive', 'Executive Summary'],
+  ['scope', 'Scope & Objectives'],
+  ['technical', 'Technical Approach'],
+  ['architecture', 'System Architecture'],
+  ['deliverables', 'Deliverables'],
+  ['acceptance', 'Acceptance Criteria'],
+  ['assumptions', 'Assumptions & Constraints'],
+] as const;
 
 export default function ProposalReviewPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -27,7 +39,7 @@ export default function ProposalReviewPage() {
   useEffect(() => {
     async function loadProposals() {
       try {
-        const rows = await selectRows<Proposal>('proposals', 'select=id,title,status,executive_summary,created_at,version&status=eq.in_review&order=created_at.desc');
+        const rows = await selectRows<Proposal>('proposals', 'select=id,title,status,template_name,executive_summary,generated_content,created_at,version&status=eq.in_review&order=created_at.desc');
         setProposals(rows);
         setSelectedProposal(rows[0]?.id ?? null);
       } catch (error) {
@@ -144,9 +156,21 @@ export default function ProposalReviewPage() {
                 <Badge variant="warning">Pending Review</Badge>
               </div>
 
-              <div className="mb-6">
-                <h3 className="font-semibold mb-2">Executive Summary</h3>
-                <p className="text-gray-700 text-sm whitespace-pre-line">{selected.executive_summary || 'No executive summary was saved for this proposal.'}</p>
+              <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
+                <p className="font-medium text-gray-900">Template</p>
+                <p className="mt-1 text-gray-600">{selected.template_name || 'Not set'}</p>
+              </div>
+
+              <div className="mb-6 space-y-4">
+                {reviewSections.map(([key, label]) => {
+                  const body = selected.generated_content?.[key] ?? (key === 'executive' ? selected.executive_summary : '');
+                  return (
+                    <div key={key} className="rounded-lg border border-gray-200 p-4">
+                      <h3 className="font-semibold mb-2">{label}</h3>
+                      <p className="text-gray-700 text-sm whitespace-pre-line">{body || 'This section has not been completed.'}</p>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="mb-6">

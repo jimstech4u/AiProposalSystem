@@ -7,6 +7,7 @@ import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supa
 import { can, getStoredRole, getStoredSession } from '../../../lib/permissions';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { toast } from 'sonner';
+import { standardProposalTemplate } from '../../../lib/default-templates';
 
 type TemplateRow = {
   id: string;
@@ -65,7 +66,13 @@ export default function TemplateManagementPage() {
 
   async function loadTemplates() {
     try {
-      const rows = await selectRows<TemplateRow>('proposal_templates', 'select=*&order=updated_at.desc');
+      let rows = await selectRows<TemplateRow>('proposal_templates', 'select=*&order=updated_at.desc');
+      if (rows.length === 0 && canCreate) {
+        rows = await insertRow<TemplateRow>('proposal_templates', {
+          ...standardProposalTemplate,
+          created_by: session?.userId ?? null,
+        } as TemplateRow);
+      }
       setTemplates(rows);
     } catch (error) {
       console.warn('Unable to load templates:', error);

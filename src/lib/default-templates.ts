@@ -1,0 +1,35 @@
+export const defaultProposalSections = [
+  'Cover Page',
+  'Executive Summary',
+  'Project Background',
+  'Scope and Objectives',
+  'Technical Approach',
+  'System Architecture',
+  'Module Breakdown',
+  'Technology Stack',
+  'Development Methodology',
+  'Team Structure',
+  'Deliverables',
+  'Acceptance Criteria',
+  'Assumptions and Constraints',
+  'Timeline and Milestones',
+  'Cost Breakdown',
+  'Terms and Conditions',
+];
+
+export const standardProposalTemplate = {
+  name: 'Standard Technical Proposal',
+  category: 'Software Development',
+  description: 'Default end-to-end proposal template for turning validated requirements into a development-ready technical proposal.',
+  sections: defaultProposalSections,
+  placeholders: {
+    client_name: '',
+    project_name: '',
+    prepared_by: '',
+    project_scope: '',
+    delivery_timeline: '',
+    estimated_budget: '',
+  },
+  version: 1,
+  is_default: true,
+};

@@ -3,13 +3,14 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2, UserRound, ListChecks } from 'lucide-react';
+import { ArrowLeft, Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2, UserRound, ListChecks, Cpu, Calculator, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateWithGemini, getGeminiErrorMessage, getGeminiRetryAfterMs, isGeminiQuotaError } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, removeJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
+import { standardProposalTemplate } from '../../../lib/default-templates';
 
 const sections = [
   { id: 'cover', name: 'Cover Page' },
@@ -110,6 +111,43 @@ type TemplateRow = {
   sections?: string[] | null;
   is_default?: boolean | null;
   version?: number | null;
+};
+
+type CostEstimateRow = {
+  id: string;
+  project_id: string;
+  development_cost: number;
+  infrastructure_cost: number;
+  third_party_cost: number;
+  contingency_percent: number;
+  contingency_amount: number;
+  total_cost: number;
+  min_cost?: number | null;
+  max_cost?: number | null;
+  confidence_score?: number | null;
+};
+
+type TechRecommendationRow = {
+  id: string;
+  project_id: string;
+  stack_name: string;
+  frontend?: string | null;
+  backend?: string | null;
+  database_name?: string | null;
+  hosting?: string | null;
+  match_score?: number | null;
+  rationale?: string | null;
+};
+
+type TimelineRow = {
+  id: string;
+  project_id: string;
+  duration_weeks: number;
+  min_weeks?: number | null;
+  max_weeks?: number | null;
+  risk_level?: string | null;
+  confidence_score?: number | null;
+  critical_path?: Array<{ name?: string; date?: string; status?: string }> | null;
 };
 
 function defaultContent(projectName: string, clientName: string): ProposalContent {
@@ -214,6 +252,14 @@ function buildLocalProposalContent(project: { name: string; client: string; desc
   };
 }
 
+function textToList(value: string | undefined) {
+  return String(value ?? '')
+    .split(/\r?\n|;|\u2022|-/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 2)
+    .slice(0, 12);
+}
+
 export default function ProposalGeneration() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -227,6 +273,9 @@ export default function ProposalGeneration() {
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
+  const [costEstimate, setCostEstimate] = useState<CostEstimateRow | null>(null);
+  const [techRecommendation, setTechRecommendation] = useState<TechRecommendationRow | null>(null);
+  const [timelinePrediction, setTimelinePrediction] = useState<TimelineRow | null>(null);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateName, setTemplateName] = useState('Standard Technical Proposal');
@@ -275,6 +324,7 @@ export default function ProposalGeneration() {
     }),
     [analysisProject.client, analysisProject.name, latestAnalysis?.missingRequirements, latestAnalysis?.project?.description, latestAnalysis?.summary, requirementItems, selectedClient?.company_name, selectedProject]
   );
+  const currentProposalPath = isEditingExistingProposal && id ? `/proposals/${id}` : '/proposals/new';
 
   useEffect(() => {
     if (!isEditingExistingProposal) {
@@ -295,9 +345,12 @@ export default function ProposalGeneration() {
         ]);
         setClients(clientRows);
         setProjects(projectRows);
-        setTemplates(templateRows);
-        if (!selectedTemplateId && templateRows.length > 0) {
-          const defaultTemplate = templateRows.find((template) => template.is_default) ?? templateRows[0];
+        const availableTemplates = templateRows.length > 0
+          ? templateRows
+          : [{ id: '', ...standardProposalTemplate } as TemplateRow];
+        setTemplates(availableTemplates);
+        if (!selectedTemplateId && availableTemplates.length > 0) {
+          const defaultTemplate = availableTemplates.find((template) => template.is_default) ?? availableTemplates[0];
           setSelectedTemplateId(defaultTemplate.id);
           setTemplateName(defaultTemplate.name);
         }
@@ -310,6 +363,115 @@ export default function ProposalGeneration() {
 
     loadProposalSources();
   }, [projectId, selectedTemplateId]);
+
+  useEffect(() => {
+    async function loadCostEstimate() {
+      if (!projectId) {
+        setCostEstimate(null);
+        return;
+      }
+
+      try {
+        const [row] = await selectRows<CostEstimateRow>('cost_estimations', `select=*&project_id=eq.${projectId}&order=created_at.desc&limit=1`);
+        setCostEstimate(row ?? null);
+      } catch (error) {
+        setCostEstimate(null);
+        console.warn('Unable to load proposal cost estimate:', error);
+      }
+    }
+
+    loadCostEstimate();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!costEstimate || String(content.cost ?? '').trim()) return;
+    setContent((current) => ({
+      ...current,
+      cost: [
+        `Estimated project cost: NGN ${Number(costEstimate.total_cost || 0).toLocaleString()}.`,
+        `Development: NGN ${Number(costEstimate.development_cost || 0).toLocaleString()}.`,
+        `Infrastructure: NGN ${Number(costEstimate.infrastructure_cost || 0).toLocaleString()}.`,
+        `Third-party services: NGN ${Number(costEstimate.third_party_cost || 0).toLocaleString()}.`,
+        `Contingency: ${costEstimate.contingency_percent}% (NGN ${Number(costEstimate.contingency_amount || 0).toLocaleString()}).`,
+        costEstimate.min_cost && costEstimate.max_cost
+          ? `Expected range: NGN ${Number(costEstimate.min_cost).toLocaleString()} - NGN ${Number(costEstimate.max_cost).toLocaleString()}.`
+          : '',
+      ].filter(Boolean).join('\n'),
+    }));
+  }, [content.cost, costEstimate]);
+
+  useEffect(() => {
+    async function loadTechRecommendation() {
+      if (!projectId) {
+        setTechRecommendation(null);
+        return;
+      }
+
+      try {
+        const [row] = await selectRows<TechRecommendationRow>('tech_recommendations', `select=*&project_id=eq.${projectId}&order=created_at.desc&limit=1`);
+        setTechRecommendation(row ?? null);
+      } catch (error) {
+        setTechRecommendation(null);
+        console.warn('Unable to load proposal technology recommendation:', error);
+      }
+    }
+
+    loadTechRecommendation();
+  }, [projectId]);
+
+  useEffect(() => {
+    async function loadTimelinePrediction() {
+      if (!projectId) {
+        setTimelinePrediction(null);
+        return;
+      }
+
+      try {
+        const [row] = await selectRows<TimelineRow>('timeline_predictions', `select=*&project_id=eq.${projectId}&order=created_at.desc&limit=1`);
+        setTimelinePrediction(row ?? null);
+      } catch (error) {
+        setTimelinePrediction(null);
+        console.warn('Unable to load proposal timeline prediction:', error);
+      }
+    }
+
+    loadTimelinePrediction();
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!techRecommendation || String(content['tech-stack'] ?? '').trim()) return;
+    setContent((current) => ({
+      ...current,
+      'tech-stack': [
+        `Recommended stack: ${techRecommendation.stack_name}.`,
+        `Frontend: ${techRecommendation.frontend || 'To be confirmed'}.`,
+        `Backend: ${techRecommendation.backend || 'To be confirmed'}.`,
+        `Database: ${techRecommendation.database_name || 'To be confirmed'}.`,
+        `Hosting: ${techRecommendation.hosting || 'To be confirmed'}.`,
+        techRecommendation.match_score ? `Match score: ${techRecommendation.match_score}%.` : '',
+        techRecommendation.rationale ? `Rationale: ${techRecommendation.rationale}` : '',
+      ].filter(Boolean).join('\n'),
+    }));
+  }, [content, techRecommendation]);
+
+  useEffect(() => {
+    if (!timelinePrediction || String(content.timeline ?? '').trim()) return;
+    const milestones = (timelinePrediction.critical_path ?? [])
+      .map((milestone) => `- ${milestone.name ?? 'Milestone'}${milestone.date ? `: ${milestone.date}` : ''}`)
+      .join('\n');
+    setContent((current) => ({
+      ...current,
+      timeline: [
+        `Estimated delivery duration: ${timelinePrediction.duration_weeks} weeks.`,
+        timelinePrediction.min_weeks && timelinePrediction.max_weeks
+          ? `Expected range: ${timelinePrediction.min_weeks} - ${timelinePrediction.max_weeks} weeks.`
+          : '',
+        timelinePrediction.risk_level ? `Risk level: ${timelinePrediction.risk_level}.` : '',
+        timelinePrediction.confidence_score ? `Confidence score: ${timelinePrediction.confidence_score}%.` : '',
+        milestones ? `Key milestones:\n${milestones}` : '',
+      ].filter(Boolean).join('\n'),
+    }));
+  }, [content.timeline, timelinePrediction]);
 
   useEffect(() => {
     async function loadProposal() {
@@ -428,6 +590,7 @@ export default function ProposalGeneration() {
 
       const payload = {
         project_id: persistedProjectId,
+        created_by: session?.userId ?? null,
         title: proposalTitle.trim() || `${project.name} Proposal`,
         template_name: templateName,
         tone,
@@ -435,6 +598,9 @@ export default function ProposalGeneration() {
         executive_summary: nextContent.executive,
         technical_approach: nextContent.technical,
         architecture_description: nextContent.architecture,
+        deliverables: textToList(nextContent.deliverables),
+        assumptions: textToList(nextContent.assumptions),
+        acceptance_criteria: textToList(nextContent.acceptance),
         generated_content: nextContent,
       };
 
@@ -492,6 +658,9 @@ Tone: ${tone}
 Detail level: ${detailLevel}
 Project context: ${JSON.stringify(project)}
 Requirements: ${JSON.stringify(requirementItems)}
+Cost estimate: ${JSON.stringify(costEstimate)}
+Technology recommendation: ${JSON.stringify(techRecommendation)}
+Timeline prediction: ${JSON.stringify(timelinePrediction)}
 Template: ${templateName}
 Template sections: ${JSON.stringify(templates.find((template) => template.id === selectedTemplateId)?.sections ?? sections.map((section) => section.name))}
 Return polished proposal text only. Do not return JSON or markdown fences.`;
@@ -708,7 +877,7 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                 </p>
               </div>
               <div className="flex items-end md:w-44">
-                <Link to="/requirements/new" state={{ returnTo: '/proposals/new' }} className="w-full">
+                <Link to="/requirements/new" state={{ returnTo: currentProposalPath }} className="w-full">
                   <Button variant="outline" className="w-full">
                     <FileText className="h-4 w-4" />
                     <span className="hidden sm:inline">New Analysis</span>
@@ -753,17 +922,55 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                 </div>
               )}
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <Link to="/requirements/new" state={{ returnTo: '/proposals/new', editAnalysis: true }} className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    Edit Requirement Plan
-                  </Button>
-                </Link>
-                <Link to="/clients" className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    Manage Clients
-                  </Button>
-                </Link>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_2fr]">
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-gray-900">Source Setup</p>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">Keep the client and requirement plan accurate before generating sections.</p>
+                  <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                    <Link to="/requirements/new" state={{ returnTo: currentProposalPath, editAnalysis: true }} className="w-full">
+                      <Button variant="outline" className="w-full justify-start">
+                        <ListChecks className="h-4 w-4" />
+                        Edit Requirement Plan
+                      </Button>
+                    </Link>
+                    <Link to="/clients" className="w-full">
+                      <Button variant="outline" className="w-full justify-start">
+                        <UserRound className="h-4 w-4" />
+                        Manage Clients
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+                <div className={`rounded-lg border p-4 ${hasProposalSource ? 'border-blue-100 bg-blue-50/40' : 'border-gray-200 bg-gray-50'}`}>
+                  <p className="text-sm font-semibold text-gray-900">Planning Workbench</p>
+                  <p className="mt-1 text-xs leading-5 text-gray-600">
+                    Complete technology, cost, and timeline planning so the proposal sections use real project data.
+                  </p>
+                  {hasProposalSource ? (
+                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <Link to="/technology" state={{ returnTo: currentProposalPath }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
+                        <Cpu className="h-5 w-5 text-blue-600" />
+                        <p className="mt-3 font-medium text-gray-900">Technology Stack</p>
+                        <p className="mt-1 text-xs leading-5 text-gray-600">{techRecommendation ? techRecommendation.stack_name : 'Recommend stack and architecture.'}</p>
+                      </Link>
+                      <Link to="/estimation" state={{ returnTo: currentProposalPath }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
+                        <Calculator className="h-5 w-5 text-blue-600" />
+                        <p className="mt-3 font-medium text-gray-900">Cost Estimate</p>
+                        <p className="mt-1 text-xs leading-5 text-gray-600">{costEstimate ? `NGN ${Number(costEstimate.total_cost || 0).toLocaleString()}` : 'Calculate effort, rates, and contingency.'}</p>
+                      </Link>
+                      <Link to="/timeline" state={{ returnTo: currentProposalPath }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
+                        <CalendarDays className="h-5 w-5 text-blue-600" />
+                        <p className="mt-3 font-medium text-gray-900">Timeline</p>
+                        <p className="mt-1 text-xs leading-5 text-gray-600">{timelinePrediction ? `${timelinePrediction.duration_weeks} weeks, ${timelinePrediction.risk_level ?? 'medium'} risk` : 'Plan phases, milestones, and risk.'}</p>
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                      Select or create a requirement analysis before opening planning tools.
+                    </p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -890,6 +1097,24 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <p className="font-medium text-gray-900">Template</p>
                     <p className="mt-1.5 text-xs text-gray-600">{templateName}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="font-medium text-gray-900">Cost Estimate</p>
+                    <p className="mt-1.5 text-xs text-gray-600">
+                      {costEstimate ? `${costEstimate.total_cost.toLocaleString()} NGN, ${costEstimate.confidence_score ?? 0}% confidence` : 'Not estimated yet'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="font-medium text-gray-900">Technology Stack</p>
+                    <p className="mt-1.5 text-xs text-gray-600">
+                      {techRecommendation ? techRecommendation.stack_name : 'Not recommended yet'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="font-medium text-gray-900">Timeline</p>
+                    <p className="mt-1.5 text-xs text-gray-600">
+                      {timelinePrediction ? `${timelinePrediction.duration_weeks} weeks, ${timelinePrediction.risk_level ?? 'medium'} risk` : 'Not predicted yet'}
+                    </p>
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <p className="font-medium text-gray-900">Project</p>

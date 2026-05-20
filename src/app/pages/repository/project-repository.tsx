@@ -23,6 +23,23 @@ type RepositoryRow = {
   archived_at: string;
 };
 
+type SourceProjectRow = {
+  id: string;
+  title: string;
+  project_type?: string | null;
+  requirements_text?: string | null;
+};
+
+type SourceProposalRow = {
+  id: string;
+  title: string;
+  status: string;
+  template_name?: string | null;
+  project_id: string;
+  generated_content?: Record<string, string> | null;
+  projects?: SourceProjectRow | null;
+};
+
 const emptyForm = {
   project_title: '',
   project_type: '',
@@ -42,6 +59,9 @@ export default function ProjectRepository() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RepositoryRow | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [sourceKey, setSourceKey] = useState('');
+  const [sourceProjects, setSourceProjects] = useState<SourceProjectRow[]>([]);
+  const [sourceProposals, setSourceProposals] = useState<SourceProposalRow[]>([]);
   const [saving, setSaving] = useState(false);
   const role = getStoredRole();
   const canCreate = can(role, 'repository', 'create');
@@ -52,6 +72,12 @@ export default function ProjectRepository() {
       try {
         const rows = await selectRows<RepositoryRow>('project_repository', 'select=*&order=archived_at.desc');
         setProjects(rows);
+        const [projectRows, proposalRows] = await Promise.all([
+          selectRows<SourceProjectRow>('projects', 'select=id,title,project_type,requirements_text&order=created_at.desc'),
+          selectRows<SourceProposalRow>('proposals', 'select=id,title,status,template_name,project_id,generated_content,projects(id,title,project_type,requirements_text)&status=in.(approved,sent,accepted)&order=created_at.desc'),
+        ]);
+        setSourceProjects(projectRows);
+        setSourceProposals(proposalRows);
       } catch (error) {
         console.warn('Unable to load repository:', error);
       } finally {
@@ -66,6 +92,7 @@ export default function ProjectRepository() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setSourceKey('');
     setFormOpen(true);
   };
 
@@ -82,7 +109,52 @@ export default function ProjectRepository() {
       outcome: project.outcome ?? '',
       lessons_learned: (project as any).lessons_learned ?? '',
     });
+    setSourceKey('');
     setFormOpen(true);
+  };
+
+  const applySource = async (nextSourceKey: string) => {
+    setSourceKey(nextSourceKey);
+    if (!nextSourceKey) return;
+
+    const [kind, sourceId] = nextSourceKey.split(':');
+    if (kind === 'proposal') {
+      const proposal = sourceProposals.find((item) => item.id === sourceId);
+      if (!proposal) return;
+      const sourceProject = proposal.projects;
+      const techText = String(proposal.generated_content?.['tech-stack'] ?? proposal.generated_content?.technical ?? '');
+      const [costEstimate] = await selectRows<{ total_cost?: number | null }>('cost_estimations', `select=total_cost&project_id=eq.${proposal.project_id}&order=created_at.desc&limit=1`).catch(() => []);
+      setForm((current) => ({
+        ...current,
+        project_title: sourceProject?.title ?? proposal.title.replace(/\s+Proposal$/i, ''),
+        project_type: sourceProject?.project_type ?? proposal.template_name ?? '',
+        technologies: techText
+          .split(/\r?\n|,|;|\u2022|-/)
+          .map((item) => item.trim())
+          .filter((item) => item.length > 2 && item.length < 40)
+          .slice(0, 12)
+          .join(', '),
+        estimated_cost: costEstimate?.total_cost == null ? current.estimated_cost : String(costEstimate.total_cost),
+        outcome: `Proposal ${proposal.status.replace(/_/g, ' ')}`,
+        lessons_learned: [
+          `Created from proposal: ${proposal.title}`,
+          `Template: ${proposal.template_name || 'Not set'}`,
+          sourceProject?.requirements_text ? `Requirements:\n${sourceProject.requirements_text}` : '',
+        ].filter(Boolean).join('\n\n'),
+      }));
+      return;
+    }
+
+    if (kind === 'project') {
+      const project = sourceProjects.find((item) => item.id === sourceId);
+      if (!project) return;
+      setForm((current) => ({
+        ...current,
+        project_title: project.title,
+        project_type: project.project_type ?? '',
+        lessons_learned: project.requirements_text ? `Requirements:\n${project.requirements_text}` : current.lessons_learned,
+      }));
+    }
   };
 
   const saveProject = async (event: React.FormEvent) => {
@@ -296,6 +368,35 @@ export default function ProjectRepository() {
               </button>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {!editing && (
+                <label className="space-y-1 text-sm font-medium text-gray-700 md:col-span-2">
+                  Start From Proposal or Project
+                  <select value={sourceKey} onChange={(event) => void applySource(event.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2">
+                    <option value="">Manual repository record</option>
+                    {sourceProposals.length > 0 && (
+                      <optgroup label="Approved / sent proposals">
+                        {sourceProposals.map((proposal) => (
+                          <option key={`proposal:${proposal.id}`} value={`proposal:${proposal.id}`}>
+                            {proposal.title} - {proposal.status.replace(/_/g, ' ')}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {sourceProjects.length > 0 && (
+                      <optgroup label="Saved projects">
+                        {sourceProjects.map((project) => (
+                          <option key={`project:${project.id}`} value={`project:${project.id}`}>
+                            {project.title}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                  <span className="block text-xs font-normal leading-5 text-gray-500">
+                    Choose a source to auto-fill the repository record, or leave manual for historical projects not created in this system.
+                  </span>
+                </label>
+              )}
               <label className="space-y-1 text-sm font-medium text-gray-700">
                 Project Title *
                 <input required value={form.project_title} onChange={(event) => setForm({ ...form, project_title: event.target.value })} className="w-full rounded-md border border-gray-300 px-3 py-2" />

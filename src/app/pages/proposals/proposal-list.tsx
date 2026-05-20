@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { Archive, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { deleteRows, selectRows, updateRows } from '../../../lib/supabase';
+import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole } from '../../../lib/permissions';
 import { toast } from 'sonner';
 
@@ -16,6 +16,18 @@ type ProposalRow = {
   created_at: string;
   template_name?: string | null;
   project_id: string;
+  generated_content?: Record<string, string> | null;
+};
+
+type ProjectRow = {
+  id: string;
+  title: string;
+  project_type?: string | null;
+  requirements_text?: string | null;
+};
+
+type CostEstimateRow = {
+  total_cost?: number | null;
 };
 
 function formatStatus(status: ProposalRow['status']) {
@@ -65,6 +77,47 @@ export default function ProposalList() {
       await loadProposals();
     } catch (error) {
       toast.error('Proposal delete failed. Check your role permissions.');
+      console.warn(error);
+    }
+  };
+
+  const archiveProposal = async (proposal: ProposalRow) => {
+    if (!window.confirm(`Archive "${proposal.title}" into the project repository?`)) return;
+
+    try {
+      const existing = await selectRows('project_repository', `select=id&project_id=eq.${proposal.project_id}&limit=1`);
+      if (existing.length > 0) {
+        toast.info('This project is already in the repository.');
+        return;
+      }
+
+      const [project] = await selectRows<ProjectRow>('projects', `select=id,title,project_type,requirements_text&id=eq.${proposal.project_id}`);
+      const [costEstimate] = await selectRows<CostEstimateRow>('cost_estimations', `select=total_cost&project_id=eq.${proposal.project_id}&order=created_at.desc&limit=1`);
+      const generatedContent = proposal.generated_content ?? {};
+      const techText = String(generatedContent['tech-stack'] ?? generatedContent.technical ?? '');
+      const technologies = techText
+        .split(/\r?\n|,|;|\u2022|-/)
+        .map((item) => item.trim())
+        .filter((item) => item.length > 2 && item.length < 40)
+        .slice(0, 12);
+
+      await insertRow('project_repository', {
+        project_id: proposal.project_id,
+        project_title: project?.title ?? proposal.title.replace(/\s+Proposal$/i, ''),
+        project_type: project?.project_type ?? proposal.template_name ?? null,
+        technologies,
+        estimated_cost: costEstimate?.total_cost ?? null,
+        outcome: `Proposal ${formatStatus(proposal.status).toLowerCase()}`,
+        lessons_learned: [
+          `Created from proposal: ${proposal.title}`,
+          `Template: ${proposal.template_name || 'Not set'}`,
+          project?.requirements_text ? `Requirements:\n${project.requirements_text}` : '',
+        ].filter(Boolean).join('\n\n'),
+      });
+      await updateRows('projects', `id=eq.${proposal.project_id}`, { status: 'archived' }).catch(() => undefined);
+      toast.success('Project archived to repository.');
+    } catch (error) {
+      toast.error('Unable to archive this proposal into the repository.');
       console.warn(error);
     }
   };
@@ -178,6 +231,12 @@ export default function ProposalList() {
                       </Button>
                     )}
                   </div>
+                )}
+                {['approved', 'accepted', 'sent'].includes(proposal.status) && (
+                  <Button variant="outline" className="w-full" onClick={() => archiveProposal(proposal)}>
+                    <Archive className="h-4 w-4" />
+                    Archive to Repository
+                  </Button>
                 )}
               </CardContent>
             </Card>
