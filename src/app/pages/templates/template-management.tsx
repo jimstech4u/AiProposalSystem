@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Copy, Download, FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { Copy, Download, Eye, FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -52,6 +52,7 @@ export default function TemplateManagementPage() {
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [previewing, setPreviewing] = useState<TemplateRow | null>(null);
   const [editing, setEditing] = useState<TemplateRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -291,6 +292,9 @@ export default function TemplateManagementPage() {
                 <Button variant="outline" size="sm" onClick={() => exportTemplate(template)}>
                   <Download className="w-4 h-4" />
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setPreviewing(template)}>
+                  <Eye className="w-4 h-4" />
+                </Button>
                 {canDelete && (
                   <Button variant="danger" size="sm" onClick={() => deleteTemplate(template)}>
                     <Trash2 className="w-4 h-4" />
@@ -346,6 +350,46 @@ export default function TemplateManagementPage() {
               </Button>
             </div>
           </form>
+        </div>
+      )}
+
+      {previewing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-xl font-semibold text-gray-900">{previewing.name}</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Version {previewing.version} {previewing.category ? `- ${previewing.category}` : ''}
+                </p>
+              </div>
+              <button type="button" onClick={() => setPreviewing(null)} className="rounded-md p-2 hover:bg-gray-100" aria-label="Close preview">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <h3 className="font-medium text-gray-900">Description</h3>
+                <p className="mt-1 text-sm leading-6 text-gray-600">{previewing.description || 'No description provided.'}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Sections</h3>
+                <ol className="mt-2 space-y-2 text-sm text-gray-700">
+                  {(previewing.sections ?? []).map((section, index) => (
+                    <li key={`${section}-${index}`} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                      {index + 1}. {section}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Placeholders</h3>
+                <pre className="mt-2 overflow-x-auto rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+                  {placeholdersToText(previewing.placeholders) || 'No placeholders configured.'}
+                </pre>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

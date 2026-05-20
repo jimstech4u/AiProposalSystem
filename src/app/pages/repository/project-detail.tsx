@@ -24,6 +24,7 @@ type RepositoryRow = {
 export default function ProjectDetail() {
   const { id } = useParams();
   const [project, setProject] = useState<RepositoryRow | null>(null);
+  const [similarProjects, setSimilarProjects] = useState<RepositoryRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +33,23 @@ export default function ProjectDetail() {
       try {
         const [row] = await selectRows<RepositoryRow>('project_repository', `select=*&id=eq.${id}`);
         setProject(row ?? null);
+        if (row) {
+          const rows = await selectRows<RepositoryRow>('project_repository', 'select=*&order=archived_at.desc');
+          const sourceTech = new Set((row.technologies ?? []).map((item) => item.toLowerCase()));
+          const matches = rows
+            .filter((candidate) => candidate.id !== row.id)
+            .map((candidate) => {
+              const candidateTech = candidate.technologies ?? [];
+              const overlap = candidateTech.filter((item) => sourceTech.has(item.toLowerCase())).length;
+              const typeMatch = row.project_type && candidate.project_type === row.project_type ? 1 : 0;
+              return { candidate, score: overlap + typeMatch };
+            })
+            .filter((item) => item.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3)
+            .map((item) => item.candidate);
+          setSimilarProjects(matches);
+        }
       } catch (error) {
         console.warn('Unable to load repository project:', error);
       } finally {
@@ -145,6 +163,27 @@ export default function ProjectDetail() {
             <p className="text-sm text-gray-600 mb-2">Lessons Learned</p>
             <p className="text-gray-700 whitespace-pre-line">{project.lessons_learned || 'No lessons learned were recorded.'}</p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Similar Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {similarProjects.length === 0 ? (
+            <p className="text-sm text-gray-600">No similar repository records found by project type or technology overlap.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {similarProjects.map((item) => (
+                <Link key={item.id} to={`/repository/${item.id}`} className="rounded-lg border border-gray-200 p-4 hover:bg-gray-50">
+                  <p className="font-medium text-gray-900">{item.project_title}</p>
+                  <p className="mt-1 text-sm text-gray-600">{item.project_type || 'Type not set'}</p>
+                  <p className="mt-2 text-xs text-gray-500">{(item.technologies ?? []).slice(0, 4).join(', ') || 'No technologies recorded'}</p>
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

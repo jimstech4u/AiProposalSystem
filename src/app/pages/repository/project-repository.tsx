@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Search, FolderOpen, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Search, FolderOpen, Plus, Pencil, Trash2, X, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole } from '../../../lib/permissions';
 import { toast } from 'sonner';
 import { formatCurrency } from '../../../lib/format';
+import { downloadTextFile, toReport } from '../../../lib/export';
 
 type RepositoryRow = {
   id: string;
@@ -142,6 +143,22 @@ export default function ProjectRepository() {
   const completedProjects = projects.filter((project) => project.outcome).length;
   const totalEstimated = projects.reduce((sum, project) => sum + Number(project.estimated_cost || 0), 0);
 
+  const exportRepository = () => {
+    const report = toReport('Project Repository', filteredProjects.map((project) => ({
+      heading: project.project_title,
+      body: [
+        `Type: ${project.project_type || 'Not set'}`,
+        `Technologies: ${(project.technologies ?? []).join(', ') || 'None recorded'}`,
+        `Estimated cost: ${formatCurrency(project.estimated_cost)}`,
+        `Actual cost: ${project.actual_cost == null ? 'Not recorded' : formatCurrency(project.actual_cost)}`,
+        `Duration: ${project.actual_weeks ?? project.estimated_weeks ?? 'Not set'} weeks`,
+        `Outcome: ${project.outcome || 'Not recorded'}`,
+        `Archived: ${new Date(project.archived_at).toLocaleDateString()}`,
+      ].join('\n'),
+    })));
+    downloadTextFile('project-repository.txt', report);
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
@@ -149,12 +166,18 @@ export default function ProjectRepository() {
           <h1 className="text-3xl font-bold text-gray-900">Project Repository</h1>
           <p className="text-gray-600 mt-1">Historical project records</p>
         </div>
-        {canCreate && (
-          <Button onClick={openCreate} aria-label="New Record" className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">New Record</span>
+        <div className="flex shrink-0 gap-2">
+          <Button variant="outline" onClick={exportRepository} aria-label="Export Repository" className="h-10 w-10 px-0 sm:w-auto sm:px-4" disabled={filteredProjects.length === 0}>
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
           </Button>
-        )}
+          {canCreate && (
+            <Button onClick={openCreate} aria-label="New Record" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">New Record</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

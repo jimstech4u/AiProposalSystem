@@ -7,7 +7,7 @@ import { ArrowLeft, Sparkles, Save, Download, FileText, ClipboardCheck, Send, In
 import { toast } from 'sonner';
 import { generateWithGemini, getGeminiErrorMessage, getGeminiRetryAfterMs, isGeminiQuotaError } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
-import { readJson, removeJson } from '../../../lib/storage';
+import { readJson, removeJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
 
@@ -20,6 +20,11 @@ const sections = [
   { id: 'architecture', name: 'System Architecture' },
   { id: 'modules', name: 'Module Breakdown' },
   { id: 'tech-stack', name: 'Technology Stack' },
+  { id: 'methodology', name: 'Development Methodology' },
+  { id: 'team', name: 'Team Structure' },
+  { id: 'deliverables', name: 'Deliverables' },
+  { id: 'acceptance', name: 'Acceptance Criteria' },
+  { id: 'assumptions', name: 'Assumptions & Constraints' },
   { id: 'timeline', name: 'Timeline & Milestones' },
   { id: 'cost', name: 'Cost Breakdown' },
   { id: 'terms', name: 'Terms & Conditions' },
@@ -46,6 +51,18 @@ const sectionAliases: Record<string, string> = {
   modules: 'modules',
   technologystack: 'tech-stack',
   techstack: 'tech-stack',
+  developmentmethodology: 'methodology',
+  methodology: 'methodology',
+  teamstructure: 'team',
+  team: 'team',
+  deliverables: 'deliverables',
+  deliverableslisting: 'deliverables',
+  acceptancecriteria: 'acceptance',
+  acceptance: 'acceptance',
+  assumptionsconstraints: 'assumptions',
+  assumptionsandconstraints: 'assumptions',
+  assumptions: 'assumptions',
+  constraints: 'assumptions',
   timeline: 'timeline',
   timelinemilestones: 'timeline',
   timelineandmilestones: 'timeline',
@@ -84,6 +101,15 @@ type ProjectRow = {
   requirements_text?: string | null;
   client_id?: string | null;
   clients?: { company_name?: string | null } | null;
+};
+
+type TemplateRow = {
+  id: string;
+  name: string;
+  category?: string | null;
+  sections?: string[] | null;
+  is_default?: boolean | null;
+  version?: number | null;
 };
 
 function defaultContent(projectName: string, clientName: string): ProposalContent {
@@ -177,6 +203,11 @@ function buildLocalProposalContent(project: { name: string; client: string; desc
     architecture: 'The recommended architecture separates presentation, application services, data persistence, and integration concerns. This keeps the system maintainable, easier to test, and easier to extend as requirements mature.',
     modules: `Primary modules will map directly to the validated requirements:\n\n${requirementList}`,
     'tech-stack': 'The technology stack should be selected based on delivery speed, maintainability, security, integration needs, and the team skills available for long-term support.',
+    methodology: 'Delivery should follow an iterative methodology with confirmed milestones, frequent review checkpoints, clear change control, and acceptance gates before deployment.',
+    team: 'The recommended team includes product ownership, project management, UX/UI design, frontend engineering, backend engineering, QA/testing, DevOps support, and stakeholder reviewers.',
+    deliverables: 'Expected deliverables include validated requirements, solution design, implementation artifacts, tested application modules, deployment configuration, user documentation, and handover materials.',
+    acceptance: 'Acceptance should be based on approved requirements, successful completion of priority workflows, security and access-control validation, performance expectations, and stakeholder sign-off.',
+    assumptions: 'This proposal assumes timely stakeholder feedback, access to required systems, availability of decision makers, stable priority requirements, and a formal process for scope changes.',
     timeline: 'Delivery should proceed through discovery validation, design, implementation, testing, review, deployment, and handover. Final duration depends on confirmed scope and integration complexity.',
     cost: 'Cost should be estimated from module complexity, engineering effort, infrastructure needs, third-party services, testing effort, and contingency for unclear requirements.',
     terms: 'This proposal assumes timely stakeholder feedback, access to required systems, clear approval checkpoints, and a formal change process for new scope discovered after approval.',
@@ -195,7 +226,10 @@ export default function ProposalGeneration() {
   const [projectId, setProjectId] = useState(shouldUseLocalAnalysis ? readJson<string | null>('latestProjectId', null) : null);
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
+  const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [templateName, setTemplateName] = useState('Standard Technical Proposal');
   const [proposalId, setProposalId] = useState(isEditingExistingProposal ? id ?? '' : '');
   const proposalIdRef = useRef(isEditingExistingProposal ? id ?? '' : '');
   const [proposalTitle, setProposalTitle] = useState(`${analysisProject.name} Proposal`);
@@ -254,12 +288,19 @@ export default function ProposalGeneration() {
   useEffect(() => {
     async function loadProposalSources() {
       try {
-        const [clientRows, projectRows] = await Promise.all([
+        const [clientRows, projectRows, templateRows] = await Promise.all([
           selectRows<ClientRow>('clients', 'select=id,company_name,contact_name,industry&order=company_name.asc'),
           selectRows<ProjectRow>('projects', 'select=id,title,description,project_type,requirements_text,client_id,clients(company_name)&order=created_at.desc'),
+          selectRows<TemplateRow>('proposal_templates', 'select=id,name,category,sections,is_default,version&order=is_default.desc,updated_at.desc'),
         ]);
         setClients(clientRows);
         setProjects(projectRows);
+        setTemplates(templateRows);
+        if (!selectedTemplateId && templateRows.length > 0) {
+          const defaultTemplate = templateRows.find((template) => template.is_default) ?? templateRows[0];
+          setSelectedTemplateId(defaultTemplate.id);
+          setTemplateName(defaultTemplate.name);
+        }
         const matchingProject = projectId ? projectRows.find((row) => row.id === projectId) : undefined;
         if (matchingProject?.client_id) setSelectedClientId(matchingProject.client_id);
       } catch (error) {
@@ -268,7 +309,7 @@ export default function ProposalGeneration() {
     }
 
     loadProposalSources();
-  }, [projectId]);
+  }, [projectId, selectedTemplateId]);
 
   useEffect(() => {
     async function loadProposal() {
@@ -280,6 +321,7 @@ export default function ProposalGeneration() {
         proposalIdRef.current = row.id;
         setProjectId(row.project_id);
         setProposalTitle(row.title);
+        setTemplateName(row.template_name ?? 'Standard Technical Proposal');
         setTone(row.tone ?? 'Professional & Formal');
         setDetailLevel(row.detail_level ?? 'Comprehensive');
       setContent({
@@ -297,6 +339,12 @@ export default function ProposalGeneration() {
     loadProposal();
   }, [id]);
 
+  useEffect(() => {
+    if (!templateName || selectedTemplateId || templates.length === 0) return;
+    const matchingTemplate = templates.find((template) => template.name === templateName);
+    if (matchingTemplate) setSelectedTemplateId(matchingTemplate.id);
+  }, [selectedTemplateId, templateName, templates]);
+
   const selectAnalysisSource = (nextProjectId: string) => {
     setProjectId(nextProjectId || null);
     const nextProject = projects.find((item) => item.id === nextProjectId);
@@ -305,6 +353,12 @@ export default function ProposalGeneration() {
       setProposalTitle(`${nextProject.title} Proposal`);
       setContent((current) => ({ ...defaultContent(nextProject.title, nextProject.clients?.company_name ?? analysisProject.client), ...current }));
     }
+  };
+
+  const selectTemplate = (nextTemplateId: string) => {
+    setSelectedTemplateId(nextTemplateId);
+    const nextTemplate = templates.find((template) => template.id === nextTemplateId);
+    setTemplateName(nextTemplate?.name ?? 'Standard Technical Proposal');
   };
 
   const ensureProject = async () => {
@@ -375,7 +429,7 @@ export default function ProposalGeneration() {
       const payload = {
         project_id: persistedProjectId,
         title: proposalTitle.trim() || `${project.name} Proposal`,
-        template_name: 'Standard Technical Proposal',
+        template_name: templateName,
         tone,
         detail_level: detailLevel,
         executive_summary: nextContent.executive,
@@ -438,6 +492,8 @@ Tone: ${tone}
 Detail level: ${detailLevel}
 Project context: ${JSON.stringify(project)}
 Requirements: ${JSON.stringify(requirementItems)}
+Template: ${templateName}
+Template sections: ${JSON.stringify(templates.find((template) => template.id === selectedTemplateId)?.sections ?? sections.map((section) => section.name))}
 Return polished proposal text only. Do not return JSON or markdown fences.`;
       return generateWithGemini(prompt);
   };
@@ -768,6 +824,29 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Proposal Template</label>
+                      <select
+                        value={selectedTemplateId}
+                        onChange={(event) => selectTemplate(event.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        {templates.length === 0 ? (
+                          <option value="">Standard Technical Proposal</option>
+                        ) : (
+                          templates.map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.name}
+                              {template.category ? ` - ${template.category}` : ''}
+                              {template.is_default ? ' (default)' : ''}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <p className="mt-1.5 text-xs leading-5 text-gray-500">
+                        The selected template is saved with the proposal and included in Gemini section prompts.
+                      </p>
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
                       <select value={tone} onChange={(event) => setTone(event.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -803,10 +882,14 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                 <CardHeader className="pb-4">
                   <CardTitle className="text-xl">Source Data</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <p className="font-medium text-gray-900">Requirements Analysis</p>
                     <p className="mt-1.5 text-xs text-gray-600">{requirementItems.length} requirements identified</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="font-medium text-gray-900">Template</p>
+                    <p className="mt-1.5 text-xs text-gray-600">{templateName}</p>
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <p className="font-medium text-gray-900">Project</p>

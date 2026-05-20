@@ -1,44 +1,17 @@
-import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Server, Users, Database, Activity, CheckCircle2 } from 'lucide-react';
 import { useDashboardData } from './use-dashboard-data';
 import { appConfig } from '../../../lib/config';
-import { generateWithGemini, isGeminiQuotaError } from '../../../lib/gemini';
 
 export default function AdminDashboard() {
   const { stats, projects, proposals, clients, integrations, loading, health } = useDashboardData();
-  const [geminiHealth, setGeminiHealth] = useState<'checking' | 'connected' | 'missing' | 'quota' | 'error'>(
-    appConfig.geminiApiKey ? 'checking' : 'missing'
-  );
+  const geminiConfigured = Boolean(appConfig.geminiApiKey);
   const backendEnvReady = Boolean(appConfig.supabaseUrl && appConfig.supabaseRestUrl && appConfig.supabaseAnonKey);
   const backendConnected = backendEnvReady && Object.values(health).some((status) => status === 'ok');
   const databaseReachable = Object.values(health).some((status) => status === 'ok');
   const totalRecords = projects.length + proposals.length + clients.length;
   const connectedApiCount = integrations.filter((integration) => integration.status === 'connected').length;
-
-  useEffect(() => {
-    let cancelled = false;
-    async function checkGemini() {
-      if (!appConfig.geminiApiKey) {
-        setGeminiHealth('missing');
-        return;
-      }
-
-      try {
-        await generateWithGemini('Return exactly: OK');
-        if (!cancelled) setGeminiHealth('connected');
-      } catch (error) {
-        console.warn('Gemini health check failed:', error);
-        if (!cancelled) setGeminiHealth(isGeminiQuotaError(error) ? 'quota' : 'error');
-      }
-    }
-
-    void checkGemini();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const systemHealth = [
     {
@@ -55,17 +28,8 @@ export default function AdminDashboard() {
     },
     {
       name: 'Gemini Integration',
-      status:
-        geminiHealth === 'checking'
-          ? 'Checking'
-          : geminiHealth === 'connected'
-          ? 'Connected'
-          : geminiHealth === 'missing'
-          ? 'Missing env'
-          : geminiHealth === 'quota'
-          ? 'Quota limited'
-          : 'Connection issue',
-      variant: geminiHealth === 'connected' ? 'success' : geminiHealth === 'checking' || geminiHealth === 'quota' ? 'warning' : 'danger',
+      status: geminiConfigured ? 'Configured' : 'Missing env',
+      variant: geminiConfigured ? 'success' : 'danger',
       icon: Activity,
     },
     {
