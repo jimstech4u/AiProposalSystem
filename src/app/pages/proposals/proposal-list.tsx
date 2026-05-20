@@ -36,6 +36,7 @@ function formatStatus(status: ProposalRow['status']) {
 
 export default function ProposalList() {
   const [proposals, setProposals] = useState<ProposalRow[]>([]);
+  const [archivedProjectIds, setArchivedProjectIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const role = getStoredRole();
@@ -45,8 +46,12 @@ export default function ProposalList() {
 
   async function loadProposals() {
       try {
-        const rows = await selectRows<ProposalRow>('proposals', 'select=*&order=created_at.desc');
+        const [rows, repositoryRows] = await Promise.all([
+          selectRows<ProposalRow>('proposals', 'select=*&order=created_at.desc'),
+          selectRows<{ project_id?: string | null }>('project_repository', 'select=project_id'),
+        ]);
         setProposals(rows);
+        setArchivedProjectIds(new Set(repositoryRows.map((row) => row.project_id).filter(Boolean) as string[]));
       } catch (error) {
         console.warn('Unable to load proposals:', error);
       } finally {
@@ -115,6 +120,7 @@ export default function ProposalList() {
         ].filter(Boolean).join('\n\n'),
       });
       await updateRows('projects', `id=eq.${proposal.project_id}`, { status: 'archived' }).catch(() => undefined);
+      setArchivedProjectIds((current) => new Set([...current, proposal.project_id]));
       toast.success('Project archived to repository.');
     } catch (error) {
       toast.error('Unable to archive this proposal into the repository.');
@@ -232,11 +238,14 @@ export default function ProposalList() {
                     )}
                   </div>
                 )}
-                {['approved', 'accepted', 'sent'].includes(proposal.status) && (
+                {['approved', 'accepted', 'sent'].includes(proposal.status) && !archivedProjectIds.has(proposal.project_id) && (
                   <Button variant="outline" className="w-full" onClick={() => archiveProposal(proposal)}>
                     <Archive className="h-4 w-4" />
                     Archive to Repository
                   </Button>
+                )}
+                {['approved', 'accepted', 'sent'].includes(proposal.status) && archivedProjectIds.has(proposal.project_id) && (
+                  <Badge variant="success" className="justify-center py-2">Archived in Repository</Badge>
                 )}
               </CardContent>
             </Card>

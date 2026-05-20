@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2, UserRound, ListChecks, Cpu, Calculator, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateWithGemini, getGeminiErrorMessage, getGeminiRetryAfterMs, isGeminiQuotaError } from '../../../lib/gemini';
+import { generateWithGemini, getGeminiErrorMessage, getGeminiRetryAfterMs, isGeminiQuotaError, isGeminiRetryableError } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, removeJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
@@ -78,6 +78,7 @@ type ProposalRow = {
   id: string;
   project_id: string;
   title: string;
+  status?: string | null;
   template_name?: string | null;
   tone?: string | null;
   detail_level?: string | null;
@@ -265,11 +266,11 @@ export default function ProposalGeneration() {
   const navigate = useNavigate();
   const location = useLocation();
   const isEditingExistingProposal = Boolean(id && id !== 'new');
-  const routeState = location.state as { useLatestAnalysis?: boolean } | null;
-  const shouldUseLocalAnalysis = !isEditingExistingProposal && Boolean(routeState?.useLatestAnalysis);
+  const routeState = location.state as { useLatestAnalysis?: boolean; projectId?: string | null } | null;
+  const shouldUseLocalAnalysis = !isEditingExistingProposal && Boolean(routeState?.useLatestAnalysis || routeState?.projectId);
   const latestAnalysis = shouldUseLocalAnalysis ? readJson<any>('latestAnalysis', null) : null;
   const analysisProject = latestAnalysis?.project ?? { name: 'Untitled Project', client: 'Client not selected' };
-  const [projectId, setProjectId] = useState(shouldUseLocalAnalysis ? readJson<string | null>('latestProjectId', null) : null);
+  const [projectId, setProjectId] = useState(routeState?.projectId ?? (shouldUseLocalAnalysis ? readJson<string | null>('latestProjectId', null) : null));
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
@@ -281,6 +282,8 @@ export default function ProposalGeneration() {
   const [templateName, setTemplateName] = useState('Standard Technical Proposal');
   const [proposalId, setProposalId] = useState(isEditingExistingProposal ? id ?? '' : '');
   const proposalIdRef = useRef(isEditingExistingProposal ? id ?? '' : '');
+  const persistingRef = useRef(false);
+  const [persisting, setPersisting] = useState(false);
   const [proposalTitle, setProposalTitle] = useState(`${analysisProject.name} Proposal`);
   const [generating, setGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState('executive');
@@ -356,13 +359,21 @@ export default function ProposalGeneration() {
         }
         const matchingProject = projectId ? projectRows.find((row) => row.id === projectId) : undefined;
         if (matchingProject?.client_id) setSelectedClientId(matchingProject.client_id);
+        if (!isEditingExistingProposal && matchingProject?.title) {
+          const clientName = matchingProject.clients?.company_name ?? analysisProject.client;
+          setProposalTitle(`${matchingProject.title} Proposal`);
+          setContent((current) => {
+            const base = defaultContent(matchingProject.title, clientName);
+            return current.executive?.includes('Untitled Project') ? base : { ...base, ...current };
+          });
+        }
       } catch (error) {
         console.warn('Unable to load proposal source data:', error);
       }
     }
 
     loadProposalSources();
-  }, [projectId, selectedTemplateId]);
+  }, [analysisProject.client, isEditingExistingProposal, projectId, selectedTemplateId]);
 
   useEffect(() => {
     async function loadCostEstimate() {
@@ -585,6 +596,10 @@ export default function ProposalGeneration() {
   };
 
   const saveProposal = async (nextContent = content) => {
+    if (persistingRef.current) return proposalIdRef.current;
+    persistingRef.current = true;
+    setPersisting(true);
+
     try {
       const persistedProjectId = await ensureProject();
 
@@ -614,6 +629,20 @@ export default function ProposalGeneration() {
         await updateRows('projects', `id=eq.${persistedProjectId}`, { status: 'proposal' }).catch(() => undefined);
         return updated?.id ?? currentProposalId;
       } else {
+        const [existingDraft] = await selectRows<ProposalRow>(
+          'proposals',
+          `select=id&project_id=eq.${persistedProjectId}&title=eq.${encodeURIComponent(payload.title)}&status=eq.draft&order=created_at.desc&limit=1`
+        );
+        if (existingDraft?.id) {
+          const [updated] = await updateRows<ProposalRow>('proposals', `id=eq.${existingDraft.id}`, payload);
+          const nextProposalId = updated?.id ?? existingDraft.id;
+          setProposalId(nextProposalId);
+          proposalIdRef.current = nextProposalId;
+          navigate(`/proposals/${nextProposalId}`, { replace: true });
+          await updateRows('projects', `id=eq.${persistedProjectId}`, { status: 'proposal' }).catch(() => undefined);
+          return nextProposalId;
+        }
+
         const [saved] = await insertRow<ProposalRow>('proposals', payload as ProposalRow);
         if (saved?.id) {
           setProposalId(saved.id);
@@ -627,6 +656,9 @@ export default function ProposalGeneration() {
       toast.error(error instanceof Error ? error.message : 'Proposal save failed.');
       console.warn('Proposal persistence failed:', error);
       return '';
+    } finally {
+      persistingRef.current = false;
+      setPersisting(false);
     }
   };
 
@@ -673,12 +705,12 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
       try {
         return await generateSectionText(sectionId);
       } catch (error) {
-        if (!isGeminiQuotaError(error) || attempt === maxAttempts) {
+        if (!isGeminiRetryableError(error) || attempt === maxAttempts) {
           throw error;
         }
 
         const retryAfter = getGeminiRetryAfterMs(error);
-        toast.warning(`Gemini free-tier quota paused ${sections.find((section) => section.id === sectionId)?.name}. Retrying in ${Math.ceil(retryAfter / 1000)}s.`);
+        toast.warning(`Gemini is temporarily unavailable for ${sections.find((section) => section.id === sectionId)?.name}. Retrying in ${Math.ceil(retryAfter / 1000)}s.`);
         await sleep(retryAfter + 500);
       }
     }
@@ -801,11 +833,11 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
-              <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource}>
+              <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource || persisting}>
                 <Save className="w-4 h-4" />
-                <span className="hidden sm:inline">Save</span>
+                <span className="hidden sm:inline">{persisting ? 'Saving...' : 'Save'}</span>
               </Button>
-              <Button variant="ai" size="sm" onClick={submitForReview} aria-label="Submit for Review" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource}>
+              <Button variant="ai" size="sm" onClick={submitForReview} aria-label="Submit for Review" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource || persisting}>
                 <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">Submit for Review</span>
               </Button>
@@ -949,17 +981,17 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                   </p>
                   {hasProposalSource ? (
                     <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                      <Link to="/technology" state={{ returnTo: currentProposalPath }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
+                      <Link to="/technology" state={{ returnTo: currentProposalPath, projectId, useLatestAnalysis: true }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
                         <Cpu className="h-5 w-5 text-blue-600" />
                         <p className="mt-3 font-medium text-gray-900">Technology Stack</p>
                         <p className="mt-1 text-xs leading-5 text-gray-600">{techRecommendation ? techRecommendation.stack_name : 'Recommend stack and architecture.'}</p>
                       </Link>
-                      <Link to="/estimation" state={{ returnTo: currentProposalPath }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
+                      <Link to="/estimation" state={{ returnTo: currentProposalPath, projectId, useLatestAnalysis: true }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
                         <Calculator className="h-5 w-5 text-blue-600" />
                         <p className="mt-3 font-medium text-gray-900">Cost Estimate</p>
                         <p className="mt-1 text-xs leading-5 text-gray-600">{costEstimate ? `NGN ${Number(costEstimate.total_cost || 0).toLocaleString()}` : 'Calculate effort, rates, and contingency.'}</p>
                       </Link>
-                      <Link to="/timeline" state={{ returnTo: currentProposalPath }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
+                      <Link to="/timeline" state={{ returnTo: currentProposalPath, projectId, useLatestAnalysis: true }} className="group rounded-lg border border-gray-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50">
                         <CalendarDays className="h-5 w-5 text-blue-600" />
                         <p className="mt-3 font-medium text-gray-900">Timeline</p>
                         <p className="mt-1 text-xs leading-5 text-gray-600">{timelinePrediction ? `${timelinePrediction.duration_weeks} weeks, ${timelinePrediction.risk_level ?? 'medium'} risk` : 'Plan phases, milestones, and risk.'}</p>
@@ -1087,43 +1119,47 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
 
               <Card>
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-xl">Source Data</CardTitle>
+                  <CardTitle className="text-xl">Proposal Readiness</CardTitle>
+                  <p className="text-sm leading-6 text-gray-600">
+                    Confirm the planning outputs that will shape the AI draft before generating or submitting the proposal.
+                  </p>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="font-medium text-gray-900">Requirements Analysis</p>
-                    <p className="mt-1.5 text-xs text-gray-600">{requirementItems.length} requirements identified</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="font-medium text-gray-900">Template</p>
-                    <p className="mt-1.5 text-xs text-gray-600">{templateName}</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="font-medium text-gray-900">Cost Estimate</p>
-                    <p className="mt-1.5 text-xs text-gray-600">
-                      {costEstimate ? `${costEstimate.total_cost.toLocaleString()} NGN, ${costEstimate.confidence_score ?? 0}% confidence` : 'Not estimated yet'}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="font-medium text-gray-900">Technology Stack</p>
-                    <p className="mt-1.5 text-xs text-gray-600">
-                      {techRecommendation ? techRecommendation.stack_name : 'Not recommended yet'}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="font-medium text-gray-900">Timeline</p>
-                    <p className="mt-1.5 text-xs text-gray-600">
-                      {timelinePrediction ? `${timelinePrediction.duration_weeks} weeks, ${timelinePrediction.risk_level ?? 'medium'} risk` : 'Not predicted yet'}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="font-medium text-gray-900">Project</p>
-                    <p className="mt-1.5 text-xs text-gray-600">{project.name}</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="font-medium text-gray-900">Client</p>
-                    <p className="mt-1.5 text-xs text-gray-600">{project.client}</p>
-                  </div>
+                  {[
+                    {
+                      label: 'Requirements',
+                      ready: requirementItems.length > 0,
+                      value: `${requirementItems.length} captured`,
+                    },
+                    {
+                      label: 'Template',
+                      ready: Boolean(templateName),
+                      value: templateName,
+                    },
+                    {
+                      label: 'Technology',
+                      ready: Boolean(techRecommendation),
+                      value: techRecommendation ? techRecommendation.stack_name : 'Open Technology Stack',
+                    },
+                    {
+                      label: 'Cost',
+                      ready: Boolean(costEstimate),
+                      value: costEstimate ? `NGN ${Number(costEstimate.total_cost || 0).toLocaleString()}` : 'Open Cost Estimate',
+                    },
+                    {
+                      label: 'Timeline',
+                      ready: Boolean(timelinePrediction),
+                      value: timelinePrediction ? `${timelinePrediction.duration_weeks} weeks` : 'Open Timeline',
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className={`rounded-lg border p-4 ${item.ready ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-medium text-gray-900">{item.label}</p>
+                        <Badge variant={item.ready ? 'success' : 'warning'}>{item.ready ? 'Ready' : 'Needed'}</Badge>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-gray-700">{item.value}</p>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </>

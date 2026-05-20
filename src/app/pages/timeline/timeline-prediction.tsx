@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, Calendar, Download, Sparkles } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
@@ -118,13 +118,15 @@ function localTimelineFromProject(project: ProjectRow | null, latestAnalysis: an
 
 export default function TimelinePrediction() {
   const location = useLocation();
-  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? '/proposals/new';
+  const navigate = useNavigate();
+  const routeState = location.state as { returnTo?: string; projectId?: string | null } | null;
+  const returnTo = routeState?.returnTo ?? '/proposals/new';
   const latestAnalysis = readJson<any>('latestAnalysis', null);
   const latestProjectId = readJson<string | null>('latestProjectId', null);
   const session = getStoredSession();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [repository, setRepository] = useState<RepositoryRow[]>([]);
-  const [projectId, setProjectId] = useState(latestProjectId ?? '');
+  const [projectId, setProjectId] = useState(routeState?.projectId ?? latestProjectId ?? '');
   const [timeline, setTimeline] = useState<TimelineRow | null>(null);
   const [phases, setPhases] = useState<Phase[]>(readJson<Phase[]>('latestTimelinePhases', []));
   const [milestones, setMilestones] = useState<Milestone[]>(readJson<Milestone[]>('latestTimelineMilestones', []));
@@ -286,6 +288,19 @@ Historical timeline average for similar projects: ${historicalAverage || 'unavai
     }
   };
 
+  const saveAndApply = async () => {
+    if (!projectId || phases.length === 0) {
+      toast.error('Select a project and prepare a timeline first.');
+      return;
+    }
+
+    if (!timeline) {
+      await saveTimeline(phases, milestones);
+    }
+    toast.success('Timeline applied to proposal context.');
+    navigate(returnTo, { state: { useLatestAnalysis: true, projectId } });
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
@@ -294,7 +309,7 @@ Historical timeline average for similar projects: ${historicalAverage || 'unavai
           <p className="text-gray-600 mt-1">Milestone-based project schedule connected to proposals and repository history</p>
         </div>
         <div className="flex shrink-0 gap-2 sm:gap-3">
-          <Link to={returnTo} aria-label="Back to Proposal">
+          <Link to={returnTo} state={{ useLatestAnalysis: true, projectId }} aria-label="Back to Proposal">
             <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back</span>
@@ -303,6 +318,10 @@ Historical timeline average for similar projects: ${historicalAverage || 'unavai
           <Button variant="outline" onClick={exportTimeline} disabled={phases.length === 0} aria-label="Export Timeline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export Timeline</span>
+          </Button>
+          <Button variant="primary" onClick={saveAndApply} disabled={!projectId || phases.length === 0} aria-label="Save and Apply" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+            <Check className="w-4 h-4" />
+            <span className="hidden sm:inline">Save & Apply</span>
           </Button>
           <Button variant="ai" onClick={recalculate} disabled={calculating || !projectId} aria-label={calculating ? 'Recalculating' : 'Recalculate'} className="h-10 w-10 px-0 sm:w-auto sm:px-4">
             <Sparkles className="w-4 h-4" />

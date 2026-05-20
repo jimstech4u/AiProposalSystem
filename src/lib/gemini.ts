@@ -49,8 +49,8 @@ export async function generateWithGemini(prompt: string) {
     }
 
     const quotaError = new Error(`Gemini request failed (${response.status}): ${apiMessage}`);
-    if (response.status === 429) {
-      (quotaError as any).status = 429;
+    if (response.status === 429 || response.status === 503) {
+      (quotaError as any).status = response.status;
       (quotaError as any).retryAfterMs = parseRetryDelayMs(apiMessage);
     }
     throw quotaError;
@@ -72,6 +72,10 @@ export function getGeminiErrorMessage(error: unknown) {
 
 export function isGeminiQuotaError(error: unknown) {
   return Boolean(error && typeof error === 'object' && (error as any).status === 429);
+}
+
+export function isGeminiRetryableError(error: unknown) {
+  return Boolean(error && typeof error === 'object' && [429, 503].includes((error as any).status));
 }
 
 export function getGeminiRetryAfterMs(error: unknown) {

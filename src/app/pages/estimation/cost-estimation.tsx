@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { ArrowLeft, Calculator, Download, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Calculator, Check, Download, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   PieChart,
@@ -135,13 +135,15 @@ function itemsToModules(items: EstimateItemRow[]): ModuleCost[] {
 
 export default function CostEstimation() {
   const location = useLocation();
-  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? '/proposals/new';
+  const navigate = useNavigate();
+  const routeState = location.state as { returnTo?: string; projectId?: string | null } | null;
+  const returnTo = routeState?.returnTo ?? '/proposals/new';
   const latestAnalysis = readJson<any>('latestAnalysis', null);
   const latestProjectId = readJson<string | null>('latestProjectId', null);
   const session = getStoredSession();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [repository, setRepository] = useState<RepositoryRow[]>([]);
-  const [projectId, setProjectId] = useState(latestProjectId ?? '');
+  const [projectId, setProjectId] = useState(routeState?.projectId ?? latestProjectId ?? '');
   const [estimate, setEstimate] = useState<EstimateRow | null>(null);
   const [moduleData, setModuleData] = useState<ModuleCost[]>(readJson<ModuleCost[]>('latestCostModules', []));
   const [loading, setLoading] = useState(true);
@@ -181,8 +183,20 @@ export default function CostEstimation() {
     setContingencyPercent(cleanNumber(latestEstimate.contingency_percent, 10));
     const items = await selectRows<EstimateItemRow>('cost_estimation_items', `select=module_name,resource_role,hours,hourly_rate,multiplier,amount&estimation_id=eq.${latestEstimate.id}`);
     const modules = itemsToModules(items);
-    setModuleData(modules);
-    saveJson('latestCostModules', modules);
+    const nextModules = modules.length
+      ? modules
+      : [{
+          name: 'Saved development estimate',
+          role: 'Project team',
+          hours: 0,
+          rate: 0,
+          multiplier: 1,
+          cost: cleanNumber(latestEstimate.development_cost),
+          complexity: 'saved',
+          confidence: cleanNumber(latestEstimate.confidence_score, 0),
+        }];
+    setModuleData(nextModules);
+    saveJson('latestCostModules', nextModules);
   }
 
   useEffect(() => {
@@ -318,6 +332,19 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
     }
   };
 
+  const saveAndApply = async () => {
+    if (!projectId || moduleData.length === 0) {
+      toast.error('Select a project and prepare a cost estimate first.');
+      return;
+    }
+
+    if (!estimate) {
+      await saveEstimate(moduleData);
+    }
+    toast.success('Cost estimate applied to proposal context.');
+    navigate(returnTo, { state: { useLatestAnalysis: true, projectId } });
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
@@ -326,7 +353,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
           <p className="text-gray-600 mt-1">Project cost model connected to proposals and repository history</p>
         </div>
         <div className="flex shrink-0 gap-2 sm:gap-3">
-          <Link to={returnTo} aria-label="Back to Proposal">
+          <Link to={returnTo} state={{ useLatestAnalysis: true, projectId }} aria-label="Back to Proposal">
             <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back</span>
@@ -335,6 +362,10 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
           <Button variant="outline" onClick={exportCost} aria-label="Export Report" className="h-10 w-10 px-0 sm:w-auto sm:px-4" disabled={moduleData.length === 0}>
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export Report</span>
+          </Button>
+          <Button variant="primary" onClick={saveAndApply} aria-label="Save and Apply" className="h-10 w-10 px-0 sm:w-auto sm:px-4" disabled={!projectId || moduleData.length === 0}>
+            <Check className="w-4 h-4" />
+            <span className="hidden sm:inline">Save & Apply</span>
           </Button>
           <Button variant="ai" onClick={recalculate} disabled={calculating || !projectId} aria-label={calculating ? 'Recalculating' : 'Recalculate'} className="h-10 w-10 px-0 sm:w-auto sm:px-4">
             <Sparkles className="w-4 h-4" />

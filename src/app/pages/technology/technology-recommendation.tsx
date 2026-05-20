@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -54,19 +54,53 @@ function rowToStack(row: TechRecommendationRow | null): StackChoice | null {
   };
 }
 
+function buildLocalRecommendation(project: ProjectRow | null, teamExpertise: string): { recommendedStack: StackChoice; alternatives: any[] } {
+  const projectType = (project?.project_type ?? '').toLowerCase();
+  const isMobile = projectType.includes('mobile') || /mobile|android|ios/i.test(`${project?.title ?? ''} ${project?.description ?? ''}`);
+  const frontend = isMobile
+    ? { name: 'React Native', version: 'Latest stable', confidence: 88 }
+    : { name: 'React', version: 'Latest stable', confidence: 88 };
+  const backend = /node|javascript|typescript/i.test(teamExpertise)
+    ? { name: 'Node.js API', version: 'LTS', confidence: 86 }
+    : { name: 'Django REST API', version: 'Latest stable', confidence: 82 };
+
+  return {
+    recommendedStack: {
+      frontend,
+      backend,
+      database: { name: 'PostgreSQL', version: 'Latest stable', confidence: 90 },
+      cloud: { name: 'Supabase + scalable cloud hosting', version: 'Managed', confidence: 84 },
+      rationale:
+        'This stack prioritizes fast delivery, strong authentication and data controls, maintainable APIs, analytics-ready relational data, and a clear path to scale from pilot users to large production traffic.',
+    },
+    alternatives: [
+      {
+        name: isMobile ? 'Flutter + Firebase + Cloud Run' : 'Next.js + NestJS + PostgreSQL',
+        match: 82,
+        pros: ['Fast product iteration', 'Large developer ecosystem', 'Good managed-service support'],
+        cons: ['Requires governance for vendor services', 'Needs disciplined monitoring as usage grows'],
+        implementationNotes: 'Use this option when team familiarity or hosting strategy makes it a better organizational fit.',
+      },
+    ],
+  };
+}
+
 export default function TechnologyRecommendation() {
   const location = useLocation();
-  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? '/proposals/new';
+  const navigate = useNavigate();
+  const routeState = location.state as { returnTo?: string; projectId?: string | null } | null;
+  const returnTo = routeState?.returnTo ?? '/proposals/new';
   const latestAnalysis = readJson<any>('latestAnalysis', null);
   const latestProjectId = readJson<string | null>('latestProjectId', null);
   const session = getStoredSession();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
-  const [projectId, setProjectId] = useState(latestProjectId ?? '');
+  const [projectId, setProjectId] = useState(routeState?.projectId ?? latestProjectId ?? '');
   const [teamExpertise, setTeamExpertise] = useState('React, Node.js, PostgreSQL, Supabase');
   const [budgetConstraint, setBudgetConstraint] = useState('Moderate');
   const [timelineConstraint, setTimelineConstraint] = useState('Balanced delivery speed and maintainability');
   const [generating, setGenerating] = useState(false);
   const [recommendedStack, setRecommendedStack] = useState<StackChoice | null>(readJson<StackChoice | null>('latestTechStack', null));
+  const [recommendationSaved, setRecommendationSaved] = useState(false);
 
   const [alternatives, setAlternatives] = useState(readJson<any[]>('latestTechAlternatives', []));
   const selectedProject = useMemo(() => projects.find((project) => project.id === projectId) ?? null, [projectId, projects]);
@@ -77,6 +111,7 @@ export default function TechnologyRecommendation() {
     if (row) {
       setRecommendedStack(rowToStack(row));
       setAlternatives(row.alternatives ?? []);
+      setRecommendationSaved(true);
     }
   }
 
@@ -102,6 +137,7 @@ export default function TechnologyRecommendation() {
     setProjectId(nextProjectId);
     setRecommendedStack(null);
     setAlternatives([]);
+    setRecommendationSaved(false);
     if (nextProjectId) await loadRecommendation(nextProjectId);
   };
 
@@ -127,6 +163,47 @@ export default function TechnologyRecommendation() {
     );
   };
 
+  const saveAndApply = async () => {
+    if (!projectId || !recommendedStack) {
+      toast.error('Select a project and generate a recommendation first.');
+      return;
+    }
+
+    if (!recommendationSaved) {
+      await persistRecommendation(recommendedStack, alternatives);
+      setRecommendationSaved(true);
+    }
+    toast.success('Technology recommendation applied to proposal context.');
+    navigate(returnTo, { state: { useLatestAnalysis: true, projectId } });
+  };
+
+  const persistRecommendation = async (stack: StackChoice, nextAlternatives: any[] = []) => {
+    const scores = [
+      stack.frontend?.confidence,
+      stack.backend?.confidence,
+      stack.database?.confidence,
+      stack.cloud?.confidence,
+    ].filter((value: unknown): value is number => typeof value === 'number');
+    await insertRow('tech_recommendations', {
+      project_id: projectId,
+      created_by: session?.userId ?? null,
+      stack_name: [
+        stack.frontend?.name,
+        stack.backend?.name,
+        stack.database?.name,
+      ].filter(Boolean).join(' / ') || 'Recommended Stack',
+      frontend: stack.frontend?.name ?? null,
+      backend: stack.backend?.name ?? null,
+      database_name: stack.database?.name ?? null,
+      hosting: stack.cloud?.name ?? null,
+      match_score: scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : null,
+      rationale: stack.rationale ?? null,
+      pros: nextAlternatives?.flatMap((alternative: any) => alternative.pros ?? []) ?? [],
+      cons: nextAlternatives?.flatMap((alternative: any) => alternative.cons ?? []) ?? [],
+      alternatives: nextAlternatives ?? [],
+    });
+  };
+
   const regenerate = async () => {
     setGenerating(true);
     try {
@@ -142,34 +219,21 @@ Timeline constraint: ${timelineConstraint}`;
       saveJson('latestTechStack', generated.recommendedStack);
       saveJson('latestTechAlternatives', generated.alternatives);
       if (projectId && generated.recommendedStack) {
-        const scores = [
-          generated.recommendedStack.frontend?.confidence,
-          generated.recommendedStack.backend?.confidence,
-          generated.recommendedStack.database?.confidence,
-          generated.recommendedStack.cloud?.confidence,
-        ].filter((value: unknown): value is number => typeof value === 'number');
-        await insertRow('tech_recommendations', {
-          project_id: projectId,
-          created_by: session?.userId ?? null,
-          stack_name: [
-            generated.recommendedStack.frontend?.name,
-            generated.recommendedStack.backend?.name,
-            generated.recommendedStack.database?.name,
-          ].filter(Boolean).join(' / ') || 'Recommended Stack',
-          frontend: generated.recommendedStack.frontend?.name ?? null,
-          backend: generated.recommendedStack.backend?.name ?? null,
-          database_name: generated.recommendedStack.database?.name ?? null,
-          hosting: generated.recommendedStack.cloud?.name ?? null,
-          match_score: scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : null,
-          rationale: generated.recommendedStack.rationale ?? null,
-          pros: generated.alternatives?.flatMap((alternative: any) => alternative.pros ?? []) ?? [],
-          cons: generated.alternatives?.flatMap((alternative: any) => alternative.cons ?? []) ?? [],
-          alternatives: generated.alternatives ?? [],
-        });
+        await persistRecommendation(generated.recommendedStack, generated.alternatives ?? []);
+        setRecommendationSaved(true);
       }
       toast.success('Technology recommendation generated and saved online.');
     } catch (error) {
-      toast.warning(`Technology stack retained. ${getGeminiErrorMessage(error)}`);
+      const fallback = buildLocalRecommendation(selectedProject, teamExpertise);
+      setRecommendedStack(fallback.recommendedStack);
+      setAlternatives(fallback.alternatives);
+      saveJson('latestTechStack', fallback.recommendedStack);
+      saveJson('latestTechAlternatives', fallback.alternatives);
+      if (projectId) {
+        await persistRecommendation(fallback.recommendedStack, fallback.alternatives);
+        setRecommendationSaved(true);
+      }
+      toast.warning(`Saved a local technology recommendation. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setGenerating(false);
@@ -184,7 +248,7 @@ Timeline constraint: ${timelineConstraint}`;
           <p className="text-gray-600 mt-1">AI-powered technology selection</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Link to={returnTo} aria-label="Back to Proposal">
+          <Link to={returnTo} state={{ useLatestAnalysis: true, projectId }} aria-label="Back to Proposal">
             <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back</span>
@@ -193,6 +257,10 @@ Timeline constraint: ${timelineConstraint}`;
           <Button variant="outline" onClick={exportRecommendation} disabled={!recommendedStack} aria-label="Export Recommendation" className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
+          </Button>
+          <Button variant="primary" onClick={saveAndApply} disabled={!recommendedStack || !projectId} aria-label="Save and Apply" className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
+            <Check className="w-4 h-4" />
+            <span className="hidden sm:inline">Save & Apply</span>
           </Button>
           <Button variant="ai" onClick={regenerate} disabled={generating} aria-label={generating ? 'Generating' : 'Regenerate'} className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
             <Sparkles className="w-4 h-4" />
