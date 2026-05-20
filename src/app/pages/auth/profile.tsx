@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { User, Mail, Phone, Building, Briefcase, Shield, Save } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, User, Mail, Phone, Building, Briefcase, Shield, Save } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card } from '../../components/ui/card';
@@ -123,8 +124,18 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-4xl p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
-        <p className="text-gray-600">Manage your account information</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
+            <p className="text-gray-600">Manage your account information</p>
+          </div>
+          <Link to="/dashboard" aria-label="Back to Dashboard" className="shrink-0">
+            <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card className="p-6">

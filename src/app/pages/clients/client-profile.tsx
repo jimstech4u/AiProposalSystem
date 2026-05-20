@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Mail, Phone, MapPin, Building2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Building2 } from 'lucide-react';
 import { selectRows } from '../../../lib/supabase';
 
 type ClientRow = {
@@ -42,18 +42,38 @@ export default function ClientProfile() {
   }, [id]);
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-600">Loading client profile...</div>;
+    return (
+      <div className="p-6">
+        <Link to="/clients" className="mb-4 inline-flex">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Clients
+          </Button>
+        </Link>
+        <p className="text-sm text-gray-600">Loading client profile...</p>
+      </div>
+    );
   }
 
   if (!client) {
-    return <div className="p-6 text-sm text-gray-600">Client record was not found.</div>;
+    return (
+      <div className="p-6">
+        <Link to="/clients" className="mb-4 inline-flex">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Clients
+          </Button>
+        </Link>
+        <p className="text-sm text-gray-600">Client record was not found.</p>
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-2xl font-bold text-white">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-2xl font-bold text-white">
             {client.company_name.charAt(0)}
           </div>
           <div className="min-w-0">
@@ -61,14 +81,22 @@ export default function ClientProfile() {
             <p className="text-gray-600 mt-1">{client.industry || 'Industry not set'}</p>
           </div>
         </div>
-        {client.contact_email && (
-          <a href={`mailto:${client.contact_email}`} aria-label="Send Email" className="shrink-0">
+        <div className="flex shrink-0 gap-2">
+          <Link to="/clients" aria-label="Back to Clients">
             <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
-              <Mail className="w-4 h-4" />
-              <span className="hidden sm:inline">Send Email</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
-          </a>
-        )}
+          </Link>
+          {client.contact_email && (
+            <a href={`mailto:${client.contact_email}`} aria-label="Send Email">
+              <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+                <Mail className="w-4 h-4" />
+                <span className="hidden sm:inline">Send Email</span>
+              </Button>
+            </a>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

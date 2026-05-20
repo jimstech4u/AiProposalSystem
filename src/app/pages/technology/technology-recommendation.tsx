@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Check, Code, Database, Server, Cloud, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Check, Code, Database, Server, Cloud, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
 import { readJson, saveJson } from '../../../lib/storage';
@@ -70,10 +71,18 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
           <h1 className="text-3xl font-bold text-gray-900">Technology Stack Recommendation</h1>
           <p className="text-gray-600 mt-1">AI-powered technology selection</p>
         </div>
-        <Button variant="ai" onClick={regenerate} disabled={generating} aria-label={generating ? 'Generating' : 'Regenerate'} className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
-          <Sparkles className="w-4 h-4" />
-          <span className="hidden sm:inline">{generating ? 'Generating...' : 'Regenerate'}</span>
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Link to="/proposals/new" aria-label="Back to Proposal">
+            <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
+            </Button>
+          </Link>
+          <Button variant="ai" onClick={regenerate} disabled={generating} aria-label={generating ? 'Generating' : 'Regenerate'} className="h-10 w-10 shrink-0 px-0 sm:w-auto sm:px-4">
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">{generating ? 'Generating...' : 'Regenerate'}</span>
+          </Button>
+        </div>
       </div>
 
       {/* Recommended Stack */}

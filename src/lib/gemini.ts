@@ -48,7 +48,12 @@ export async function generateWithGemini(prompt: string) {
       throw new Error(`Gemini model "${appConfig.geminiModel}" was not found or is not enabled for this API key.`);
     }
 
-    throw new Error(`Gemini request failed (${response.status}): ${apiMessage}`);
+    const quotaError = new Error(`Gemini request failed (${response.status}): ${apiMessage}`);
+    if (response.status === 429) {
+      (quotaError as any).status = 429;
+      (quotaError as any).retryAfterMs = parseRetryDelayMs(apiMessage);
+    }
+    throw quotaError;
   }
 
   const data = (await response.json()) as GeminiResponse;
@@ -63,6 +68,24 @@ export async function generateWithGemini(prompt: string) {
 
 export function getGeminiErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Gemini request failed.';
+}
+
+export function isGeminiQuotaError(error: unknown) {
+  return Boolean(error && typeof error === 'object' && (error as any).status === 429);
+}
+
+export function getGeminiRetryAfterMs(error: unknown) {
+  if (error && typeof error === 'object' && typeof (error as any).retryAfterMs === 'number') {
+    return (error as any).retryAfterMs as number;
+  }
+
+  return 2000;
+}
+
+function parseRetryDelayMs(message: string) {
+  const match = message.match(/retry in\s+([0-9.]+)s/i);
+  if (!match) return 2000;
+  return Math.max(1000, Math.ceil(Number(match[1]) * 1000));
 }
 
 export function extractJsonObject<T>(text: string, fallback: T): T {

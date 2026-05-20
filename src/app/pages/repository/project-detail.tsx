@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { selectRows } from '../../../lib/supabase';
 import { formatCurrency } from '../../../lib/format';
 
@@ -40,8 +42,32 @@ export default function ProjectDetail() {
     loadProject();
   }, [id]);
 
-  if (loading) return <div className="p-6 text-sm text-gray-600">Loading project record...</div>;
-  if (!project) return <div className="p-6 text-sm text-gray-600">Project record was not found.</div>;
+  if (loading) {
+    return (
+      <div className="p-6">
+        <Link to="/repository" className="mb-4 inline-flex">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Repository
+          </Button>
+        </Link>
+        <p className="text-sm text-gray-600">Loading project record...</p>
+      </div>
+    );
+  }
+  if (!project) {
+    return (
+      <div className="p-6">
+        <Link to="/repository" className="mb-4 inline-flex">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Repository
+          </Button>
+        </Link>
+        <p className="text-sm text-gray-600">Project record was not found.</p>
+      </div>
+    );
+  }
 
   const variance =
     project.estimated_cost && project.actual_cost
@@ -50,9 +76,17 @@ export default function ProjectDetail() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{project.project_title}</h1>
-        <p className="text-gray-600 mt-1">Archived {new Date(project.archived_at).toLocaleDateString()}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold text-gray-900">{project.project_title}</h1>
+          <p className="text-gray-600 mt-1">Archived {new Date(project.archived_at).toLocaleDateString()}</p>
+        </div>
+        <Link to="/repository" aria-label="Back to Repository" className="shrink-0">
+          <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back</span>
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

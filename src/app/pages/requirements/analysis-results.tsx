@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Sparkles, Download, AlertTriangle, CheckCircle2, Edit } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, AlertTriangle, CheckCircle2, Edit } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson } from '../../../lib/storage';
@@ -44,6 +44,12 @@ export default function AnalysisResults() {
           </p>
         </div>
         <div className="flex shrink-0 gap-2 sm:gap-3">
+          <Link to="/requirements/new" aria-label="Back to Requirements">
+            <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
+            </Button>
+          </Link>
           <Link to="/requirements/new" aria-label="Edit Requirements">
             <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
               <Edit className="w-4 h-4" />
@@ -54,7 +60,7 @@ export default function AnalysisResults() {
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export Report</span>
           </Button>
-          <Link to={hasAnalysis ? '/proposals/new' : '/requirements/new'} aria-label={hasAnalysis ? 'Generate Proposal' : 'Create Analysis'}>
+          <Link to={hasAnalysis ? '/proposals/new' : '/requirements/new'} state={hasAnalysis ? { useLatestAnalysis: true } : undefined} aria-label={hasAnalysis ? 'Generate Proposal' : 'Create Analysis'}>
             <Button variant="ai" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">{hasAnalysis ? 'Generate Proposal' : 'Create Analysis'}</span>

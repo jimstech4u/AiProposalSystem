@@ -173,13 +173,13 @@ export default function DashboardLayout({ children, userRole, email, onLogout }:
 
         if (['sales', 'project-manager', 'admin'].includes(userRole)) {
           requests.push(
-            selectRows<any>('clients', 'select=id,company_name,contact_name,industry,email&order=created_at.desc&limit=25').then((rows) =>
+            selectRows<any>('clients', 'select=id,company_name,contact_name,contact_email,industry&order=created_at.desc&limit=25').then((rows) =>
               rows.map((client) => ({
                 id: `client-${client.id}`,
                 label: client.company_name ?? 'Unnamed client',
                 meta: `Client${client.industry ? ` / ${client.industry}` : ''}`,
                 path: `/clients/${client.id}`,
-                haystack: [client.company_name, client.contact_name, client.industry, client.email].filter(Boolean).join(' '),
+                haystack: [client.company_name, client.contact_name, client.contact_email, client.industry].filter(Boolean).join(' '),
               }))
             )
           );

@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2, UserRound, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
+import { generateWithGemini, getGeminiErrorMessage, getGeminiRetryAfterMs, isGeminiQuotaError } from '../../../lib/gemini';
 import { downloadTextFile, toReport } from '../../../lib/export';
-import { readJson, removeJson, saveJson } from '../../../lib/storage';
+import { readJson, removeJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
 
@@ -26,6 +26,35 @@ const sections = [
 ];
 
 type ProposalContent = Record<string, string>;
+
+const sectionAliases: Record<string, string> = {
+  coverpage: 'cover',
+  cover: 'cover',
+  executivesummary: 'executive',
+  executive: 'executive',
+  summary: 'executive',
+  projectbackground: 'background',
+  background: 'background',
+  scopeobjectives: 'scope',
+  scopeandobjectives: 'scope',
+  scope: 'scope',
+  technicalapproach: 'technical',
+  technical: 'technical',
+  systemarchitecture: 'architecture',
+  architecture: 'architecture',
+  modulebreakdown: 'modules',
+  modules: 'modules',
+  technologystack: 'tech-stack',
+  techstack: 'tech-stack',
+  timeline: 'timeline',
+  timelinemilestones: 'timeline',
+  timelineandmilestones: 'timeline',
+  cost: 'cost',
+  costbreakdown: 'cost',
+  terms: 'terms',
+  termsconditions: 'terms',
+  termsandconditions: 'terms',
+};
 
 type ProposalRow = {
   id: string;
@@ -64,6 +93,71 @@ function defaultContent(projectName: string, clientName: string): ProposalConten
   };
 }
 
+function normalizeSectionKey(key: string) {
+  const compact = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return sectionAliases[compact] ?? key;
+}
+
+function normalizeGeneratedContent(generated: ProposalContent) {
+  const toSectionText = (value: unknown): string => {
+    if (typeof value === 'string') return value.trim();
+    if (Array.isArray(value)) {
+      return value.map((item) => toSectionText(item)).filter(Boolean).join('\n\n');
+    }
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, unknown>;
+      const preferred = record.content ?? record.body ?? record.text ?? record.description ?? record.summary;
+      if (preferred) return toSectionText(preferred);
+      return Object.entries(record)
+        .filter(([key]) => !['id', 'key', 'name', 'title', 'section'].includes(key.toLowerCase()))
+        .map(([key, item]) => `${key.replace(/[-_]/g, ' ')}: ${toSectionText(item)}`)
+        .filter((line) => !line.endsWith(': '))
+        .join('\n');
+    }
+    return '';
+  };
+
+  const collect = (source: unknown) => {
+    if (!source) return {};
+
+    if (Array.isArray(source)) {
+      return source.reduce<ProposalContent>((next, item) => {
+        if (!item || typeof item !== 'object') return next;
+        const record = item as Record<string, unknown>;
+        const rawKey = String(record.id ?? record.key ?? record.name ?? record.title ?? record.section ?? '');
+        const normalizedKey = normalizeSectionKey(rawKey);
+        const text = toSectionText(record.content ?? record.body ?? record.text ?? record.description ?? record);
+        if (sections.some((section) => section.id === normalizedKey) && text) {
+          next[normalizedKey] = text;
+        }
+        return next;
+      }, {});
+    }
+
+    if (typeof source !== 'object') return {};
+
+    return Object.entries(source as Record<string, unknown>).reduce<ProposalContent>((next, [key, value]) => {
+      const normalizedKey = normalizeSectionKey(key);
+      const text = toSectionText(value);
+      if (sections.some((section) => section.id === normalizedKey) && text) {
+        next[normalizedKey] = text;
+      }
+      return next;
+    }, {});
+  };
+
+  const roots = [
+    generated,
+    (generated as any)?.sections,
+    (generated as any)?.proposal,
+    (generated as any)?.content,
+    (generated as any)?.generated_content,
+    (generated as any)?.generatedContent,
+  ];
+
+  return roots.reduce<ProposalContent>((next, root) => ({ ...next, ...collect(root) }), {});
+}
+
 function buildLocalProposalContent(project: { name: string; client: string; description?: string }, latestAnalysis: any): ProposalContent {
   const projectName = project.name || 'the proposed project';
   const clientName = project.client || 'the client';
@@ -92,44 +186,66 @@ function buildLocalProposalContent(project: { name: string; client: string; desc
 export default function ProposalGeneration() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const isEditingExistingProposal = Boolean(id && id !== 'new');
-  const latestAnalysis = readJson<any>('latestAnalysis', null);
+  const routeState = location.state as { useLatestAnalysis?: boolean } | null;
+  const shouldUseLocalAnalysis = !isEditingExistingProposal && Boolean(routeState?.useLatestAnalysis);
+  const latestAnalysis = shouldUseLocalAnalysis ? readJson<any>('latestAnalysis', null) : null;
   const analysisProject = latestAnalysis?.project ?? { name: 'Untitled Project', client: 'Client not selected' };
-  const [projectId, setProjectId] = useState(readJson<string | null>('latestProjectId', null));
+  const [projectId, setProjectId] = useState(shouldUseLocalAnalysis ? readJson<string | null>('latestProjectId', null) : null);
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
-  const storedProposal = readJson<ProposalContent | null>('latestProposal', null);
   const [proposalId, setProposalId] = useState(isEditingExistingProposal ? id ?? '' : '');
+  const proposalIdRef = useRef(isEditingExistingProposal ? id ?? '' : '');
   const [proposalTitle, setProposalTitle] = useState(`${analysisProject.name} Proposal`);
   const [generating, setGenerating] = useState(false);
   const [activeSection, setActiveSection] = useState('executive');
   const [tone, setTone] = useState('Professional & Formal');
   const [detailLevel, setDetailLevel] = useState('Comprehensive');
   const [content, setContent] = useState<ProposalContent>(() =>
-    isEditingExistingProposal ? storedProposal ?? defaultContent(analysisProject.name, analysisProject.client) : defaultContent(analysisProject.name, analysisProject.client)
+    defaultContent(analysisProject.name, analysisProject.client)
   );
   const session = getStoredSession();
+  const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
   const activeSectionName = useMemo(() => sections.find((section) => section.id === activeSection)?.name ?? 'Section', [activeSection]);
   const selectedProject = useMemo(() => projects.find((item) => item.id === projectId), [projectId, projects]);
   const selectedClient = useMemo(() => clients.find((client) => client.id === selectedClientId), [clients, selectedClientId]);
   const hasUsableAnalysis = Boolean(latestAnalysis?.summary?.totalRequirements && analysisProject.name !== 'Untitled Project');
   const hasProposalSource = Boolean(projectId || hasUsableAnalysis);
+  const requirementItems = useMemo(() => {
+    if (selectedProject?.requirements_text) {
+      return selectedProject.requirements_text
+        .split(/\r?\n/)
+        .map((description) => ({ description: description.trim(), category: 'general', priority: 'medium' }))
+        .filter((item) => item.description);
+    }
+
+    return (latestAnalysis?.requirements ?? [])
+      .map((item: any) => ({
+        description: String(item.description ?? '').trim(),
+        category: item.category ?? 'general',
+        priority: item.priority ?? 'medium',
+      }))
+      .filter((item: any) => item.description);
+  }, [latestAnalysis?.requirements, selectedProject?.requirements_text]);
   const project = useMemo(
     () => ({
       name: selectedProject?.title ?? analysisProject.name,
       client: selectedClient?.company_name ?? selectedProject?.clients?.company_name ?? analysisProject.client,
       description: selectedProject?.description ?? latestAnalysis?.project?.description,
-      requirements: selectedProject?.requirements_text ?? latestAnalysis,
+      requirements: requirementItems,
+      summary: latestAnalysis?.summary,
+      missingRequirements: latestAnalysis?.missingRequirements ?? [],
     }),
-    [analysisProject.client, analysisProject.name, latestAnalysis, selectedClient?.company_name, selectedProject]
+    [analysisProject.client, analysisProject.name, latestAnalysis?.missingRequirements, latestAnalysis?.project?.description, latestAnalysis?.summary, requirementItems, selectedClient?.company_name, selectedProject]
   );
 
   useEffect(() => {
     if (!isEditingExistingProposal) {
-      removeJson('latestProposal');
       setProposalId('');
+      proposalIdRef.current = '';
       setProposalTitle(`${analysisProject.name} Proposal`);
       setContent(defaultContent(analysisProject.name, analysisProject.client));
     }
@@ -161,12 +277,13 @@ export default function ProposalGeneration() {
         const [row] = await selectRows<ProposalRow>('proposals', `select=*&id=eq.${id}`);
         if (!row) return;
         setProposalId(row.id);
+        proposalIdRef.current = row.id;
         setProjectId(row.project_id);
         setProposalTitle(row.title);
         setTone(row.tone ?? 'Professional & Formal');
         setDetailLevel(row.detail_level ?? 'Comprehensive');
-        setContent({
-          ...(row.generated_content ?? {}),
+      setContent({
+          ...normalizeGeneratedContent(row.generated_content ?? {}),
           executive: row.generated_content?.executive ?? row.executive_summary ?? '',
           technical: row.generated_content?.technical ?? row.technical_approach ?? '',
           architecture: row.generated_content?.architecture ?? row.architecture_description ?? '',
@@ -179,6 +296,16 @@ export default function ProposalGeneration() {
 
     loadProposal();
   }, [id]);
+
+  const selectAnalysisSource = (nextProjectId: string) => {
+    setProjectId(nextProjectId || null);
+    const nextProject = projects.find((item) => item.id === nextProjectId);
+    setSelectedClientId(nextProject?.client_id ?? '');
+    if (nextProject?.title) {
+      setProposalTitle(`${nextProject.title} Proposal`);
+      setContent((current) => ({ ...defaultContent(nextProject.title, nextProject.clients?.company_name ?? analysisProject.client), ...current }));
+    }
+  };
 
   const ensureProject = async () => {
     if (projectId) return projectId;
@@ -242,7 +369,6 @@ export default function ProposalGeneration() {
   };
 
   const saveProposal = async (nextContent = content) => {
-    saveJson('latestProposal', nextContent);
     try {
       const persistedProjectId = await ensureProject();
 
@@ -258,62 +384,95 @@ export default function ProposalGeneration() {
         generated_content: nextContent,
       };
 
-      if (proposalId) {
-        const [updated] = await updateRows<ProposalRow>('proposals', `id=eq.${proposalId}`, payload);
-        if (updated?.id) setProposalId(updated.id);
+      const currentProposalId = proposalIdRef.current || proposalId;
+      if (currentProposalId) {
+        const [updated] = await updateRows<ProposalRow>('proposals', `id=eq.${currentProposalId}`, payload);
+        if (updated?.id) {
+          setProposalId(updated.id);
+          proposalIdRef.current = updated.id;
+        }
         await updateRows('projects', `id=eq.${persistedProjectId}`, { status: 'proposal' }).catch(() => undefined);
-        return updated?.id ?? proposalId;
+        return updated?.id ?? currentProposalId;
       } else {
         const [saved] = await insertRow<ProposalRow>('proposals', payload as ProposalRow);
-        if (saved?.id) setProposalId(saved.id);
+        if (saved?.id) {
+          setProposalId(saved.id);
+          proposalIdRef.current = saved.id;
+          navigate(`/proposals/${saved.id}`, { replace: true });
+        }
         await updateRows('projects', `id=eq.${persistedProjectId}`, { status: 'proposal' }).catch(() => undefined);
-        return saved?.id ?? true;
+        return saved?.id ?? '';
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Proposal save failed.');
       console.warn('Proposal persistence failed:', error);
-      return false;
+      return '';
     }
   };
 
   const submitForReview = async () => {
-    const saved = await saveProposal();
-    if (!saved) return;
-
-    const savedProposalId = typeof saved === 'string' ? saved : proposalId;
-    if (!savedProposalId) {
-      toast.error('Save the proposal before submitting for review.');
-      return;
-    }
+    const savedProposalId = await saveProposal();
+    if (!savedProposalId) return;
 
     try {
       await updateRows('proposals', `id=eq.${savedProposalId}`, { status: 'in_review' });
+      removeJson('latestAnalysis');
+      removeJson('latestProjectId');
+      setProposalId('');
+      proposalIdRef.current = '';
+      setProjectId(null);
+      setSelectedClientId('');
+      setProposalTitle('New Proposal');
+      setContent(defaultContent('New Proposal', 'Client not selected'));
       toast.success('Proposal submitted for review.');
+      navigate('/proposals');
     } catch (error) {
       toast.error('Unable to submit proposal for review.');
       console.warn(error);
     }
   };
 
-  const handleGenerateSection = async (sectionId = activeSection) => {
-    setGenerating(true);
-    try {
+  const generateSectionText = async (sectionId: string) => {
       const prompt = `Write the "${sections.find((section) => section.id === sectionId)?.name}" section of a technical proposal.
 Tone: ${tone}
 Detail level: ${detailLevel}
 Project context: ${JSON.stringify(project)}
-Requirement analysis: ${JSON.stringify(latestAnalysis)}
-Return polished proposal text only.`;
-      const text = await generateWithGemini(prompt);
+Requirements: ${JSON.stringify(requirementItems)}
+Return polished proposal text only. Do not return JSON or markdown fences.`;
+      return generateWithGemini(prompt);
+  };
+
+  const generateSectionTextWithRetry = async (sectionId: string) => {
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await generateSectionText(sectionId);
+      } catch (error) {
+        if (!isGeminiQuotaError(error) || attempt === maxAttempts) {
+          throw error;
+        }
+
+        const retryAfter = getGeminiRetryAfterMs(error);
+        toast.warning(`Gemini free-tier quota paused ${sections.find((section) => section.id === sectionId)?.name}. Retrying in ${Math.ceil(retryAfter / 1000)}s.`);
+        await sleep(retryAfter + 500);
+      }
+    }
+
+    throw new Error('Gemini retry failed.');
+  };
+
+  const handleGenerateSection = async (sectionId = activeSection) => {
+    setGenerating(true);
+    try {
+      const text = await generateSectionTextWithRetry(sectionId);
       const nextContent = { ...content, [sectionId]: text };
       setContent(nextContent);
       const saved = await saveProposal(nextContent);
-      toast.success(saved ? 'Section generated and saved with Gemini.' : 'Section generated locally. Save after selecting an analysis.');
+      toast.success(saved ? 'Section generated and saved as an online draft.' : 'Section generated. Save after selecting an analysis.');
     } catch (error) {
       const fallback = `${activeSectionName}\n\nThis section should be completed using the project requirements, client objectives, technical constraints, delivery assumptions, and acceptance criteria captured during requirement analysis.`;
       const nextContent = { ...content, [sectionId]: fallback };
       setContent(nextContent);
-      saveJson('latestProposal', nextContent);
       toast.warning(`Local fallback inserted. ${getGeminiErrorMessage(error)}`);
       console.warn(error);
     } finally {
@@ -324,22 +483,27 @@ Return polished proposal text only.`;
   const handleGenerateAll = async () => {
     setGenerating(true);
     try {
-      const prompt = `Generate a complete technical proposal as valid JSON. Use keys: ${sections.map((section) => section.id).join(', ')}.
-Tone: ${tone}
-Detail level: ${detailLevel}
-Project context: ${JSON.stringify(project)}
-Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
-      const text = await generateWithGemini(prompt);
-      const generated = extractJsonObject<ProposalContent>(text, content);
-      const nextContent = { ...content, ...generated };
-      setContent(nextContent);
-      const saved = await saveProposal(nextContent);
-      toast.success(saved ? 'Full proposal generated and saved with Gemini.' : 'Full proposal generated locally. Save after selecting an analysis.');
+      let nextContent = { ...content };
+      const startIndex = Math.max(0, sections.findIndex((section) => !String(nextContent[section.id] ?? '').trim()));
+      const pendingSections = startIndex === -1 ? sections : sections.slice(startIndex);
+
+      for (const section of pendingSections) {
+        const text = await generateSectionTextWithRetry(section.id);
+        nextContent = { ...nextContent, [section.id]: text };
+        setContent(nextContent);
+        setActiveSection(section.id);
+        await saveProposal(nextContent);
+      }
+      toast.success('All proposal sections generated and saved as an online draft.');
     } catch (error) {
-      const nextContent = { ...content, ...buildLocalProposalContent(project, latestAnalysis) };
-      setContent(nextContent);
-      saveJson('latestProposal', nextContent);
-      toast.warning(`Generated a local proposal fallback. ${getGeminiErrorMessage(error)}`);
+      if (isGeminiQuotaError(error)) {
+        toast.warning('Gemini quota paused generation. Completed sections were saved online. Click Generate All again later to continue remaining sections.');
+      } else {
+        const nextContent = { ...content, ...buildLocalProposalContent(project, latestAnalysis) };
+        setContent(nextContent);
+        await saveProposal(nextContent);
+        toast.warning(`Generated a local proposal fallback. ${getGeminiErrorMessage(error)}`);
+      }
       console.warn(error);
     } finally {
       setGenerating(false);
@@ -362,7 +526,6 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
     if (!confirmed) return;
 
     [
-      'latestProposal',
       'latestAnalysis',
       'latestProjectId',
       'latestCostModules',
@@ -376,6 +539,7 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
     setProjectId(null);
     setSelectedClientId('');
     setProposalId('');
+    proposalIdRef.current = '';
     setProposalTitle('New Proposal');
     setContent(defaultContent('New Proposal', 'Client not selected'));
     toast.success('Local proposal draft cleared.');
@@ -400,6 +564,10 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 xl:shrink-0">
+              <Button variant="outline" size="sm" onClick={() => navigate('/proposals')} aria-label="Back to Proposals" className="h-10 w-10 px-0 sm:w-auto sm:px-3">
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Back</span>
+              </Button>
               <Button variant="outline" size="sm" onClick={clearLocalProposalFlow} aria-label="Clear Draft" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={isEditingExistingProposal}>
                 <Trash2 className="w-4 h-4" />
                 <span className="hidden sm:inline">Clear Draft</span>
@@ -447,13 +615,14 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 Choose the requirements analysis that should drive this proposal. The selected analysis supplies the client, scope, requirements, and AI context.
               </p>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-[1fr_auto]">
+            <CardContent className="space-y-5">
+              <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-[1fr_auto]">
               <div className="min-w-0">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Requirements Analysis</label>
                 {projects.length > 0 ? (
                   <select
                     value={projectId ?? ''}
-                    onChange={(event) => setProjectId(event.target.value || null)}
+                    onChange={(event) => selectAnalysisSource(event.target.value)}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {hasUsableAnalysis && (
@@ -488,6 +657,55 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                     <FileText className="h-4 w-4" />
                     <span className="hidden sm:inline">New Analysis</span>
                     <span className="sm:hidden">New</span>
+                  </Button>
+                </Link>
+              </div>
+              </div>
+
+              {hasProposalSource && (
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <FileText className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase text-gray-500">Project</p>
+                        <p className="mt-1 font-semibold text-gray-900">{project.name}</p>
+                        <p className="mt-1 text-xs leading-5 text-gray-600">{project.description || 'No project description captured.'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase text-gray-500">Client</p>
+                        <p className="mt-1 font-semibold text-gray-900">{project.client}</p>
+                        <p className="mt-1 text-xs leading-5 text-gray-600">Client comes from the selected requirement analysis.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <ListChecks className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase text-gray-500">Requirement Plan</p>
+                        <p className="mt-1 font-semibold text-gray-900">{requirementItems.length} requirements</p>
+                        <p className="mt-1 text-xs leading-5 text-gray-600">Used for scope, modules, timeline, cost, and acceptance language.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <Link to="/requirements/new" state={{ returnTo: '/proposals/new', editAnalysis: true }} className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    Edit Requirement Plan
+                  </Button>
+                </Link>
+                <Link to="/clients" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    Manage Clients
                   </Button>
                 </Link>
               </div>
@@ -585,10 +803,14 @@ Requirement analysis: ${JSON.stringify(latestAnalysis)}`;
                 <CardHeader className="pb-4">
                   <CardTitle className="text-xl">Source Data</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <p className="font-medium text-gray-900">Requirements Analysis</p>
-                    <p className="mt-1.5 text-xs text-gray-600">{latestAnalysis?.summary?.totalRequirements ?? 0} requirements identified</p>
+                    <p className="mt-1.5 text-xs text-gray-600">{requirementItems.length} requirements identified</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="font-medium text-gray-900">Project</p>
+                    <p className="mt-1.5 text-xs text-gray-600">{project.name}</p>
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <p className="font-medium text-gray-900">Client</p>

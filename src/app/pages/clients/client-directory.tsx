@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Search, Users, Building2, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
+import { deleteRows, insertRow, isJwtExpired, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole, getStoredSession } from '../../../lib/permissions';
 import { toast } from 'sonner';
 
@@ -46,10 +46,19 @@ export default function ClientDirectory() {
   const canDelete = can(role, 'clients', 'delete');
 
   async function loadClients() {
+      if (!session?.accessToken || isJwtExpired(session.accessToken)) {
+        setClients([]);
+        setLoading(false);
+        toast.error('Your Supabase session expired. Sign in again to load client records.');
+        return;
+      }
+
       try {
         const rows = await selectRows<ClientRow>('clients', 'select=*&order=created_at.desc');
         setClients(rows);
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown Supabase error.';
+        toast.error(message.includes('JWT') || message.includes('401') ? 'Your Supabase session is invalid. Sign in again.' : 'Unable to load clients from Supabase. Check your session and client read permissions.');
         console.warn('Unable to load clients:', error);
       } finally {
         setLoading(false);

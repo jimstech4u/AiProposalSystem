@@ -31,7 +31,7 @@ import SecurityAuditPage from './pages/security/security-audit';
 import SettingsPage from './pages/settings/settings';
 import LegalPolicyPage from './pages/legal/legal-policy';
 import { readJson, removeJson, saveJson } from '../lib/storage';
-import { signOut, type AppRole } from '../lib/supabase';
+import { isJwtExpired, signOut, type AppRole } from '../lib/supabase';
 import { applyTheme, getStoredTheme } from '../lib/theme';
 
 type StoredSession = {
@@ -45,7 +45,7 @@ export default function App() {
   const [session, setSession] = useState<StoredSession | null>(() =>
     readJson<StoredSession | null>('session', null)
   );
-  const isAuthenticated = Boolean(session);
+  const isAuthenticated = Boolean(session?.accessToken && !isJwtExpired(session.accessToken));
   const userRole = session?.role ?? 'engineer';
 
   const handleLogin = (role: AppRole, accessToken?: string, email?: string, userId?: string) => {
@@ -56,6 +56,23 @@ export default function App() {
 
   useEffect(() => {
     applyTheme(getStoredTheme());
+  }, []);
+
+  useEffect(() => {
+    if (session && (!session.accessToken || isJwtExpired(session.accessToken))) {
+      removeJson('session');
+      setSession(null);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    const expireSession = () => {
+      removeJson('session');
+      setSession(null);
+    };
+
+    window.addEventListener('proposalai:session-expired', expireSession);
+    return () => window.removeEventListener('proposalai:session-expired', expireSession);
   }, []);
 
   const handleLogout = async () => {

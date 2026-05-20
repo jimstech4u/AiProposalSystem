@@ -36,6 +36,10 @@ function headers(token?: string) {
   };
 }
 
+function buildErrorMessage(action: string, table: string, response: Response, message: string) {
+  return `${action} ${table} failed (${response.status} ${response.statusText}): ${message || 'No response body.'}`;
+}
+
 function authUrl(path: string) {
   assertConfigured('supabaseUrl');
   return `${appConfig.supabaseUrl}/auth/v1${path}`;
@@ -226,7 +230,7 @@ export async function selectRows<T>(table: string, query = 'select=*', token?: s
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || `Unable to load ${table}.`);
+    throw new Error(buildErrorMessage('Load', table, response, message));
   }
 
   return (await response.json()) as T[];
@@ -281,9 +285,28 @@ export function getStoredAccessToken() {
   if (!raw) return undefined;
 
   try {
-    return JSON.parse(raw)?.accessToken as string | undefined;
+    const accessToken = JSON.parse(raw)?.accessToken as string | undefined;
+    if (!accessToken) return undefined;
+
+    if (isJwtExpired(accessToken)) {
+      window.localStorage.removeItem('proposalai:session');
+      window.dispatchEvent(new CustomEvent('proposalai:session-expired'));
+      return undefined;
+    }
+
+    return accessToken;
   } catch {
     return undefined;
+  }
+}
+
+export function isJwtExpired(token: string) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { exp?: number };
+    if (!payload.exp) return false;
+    return payload.exp * 1000 <= Date.now() + 5000;
+  } catch {
+    return false;
   }
 }
 

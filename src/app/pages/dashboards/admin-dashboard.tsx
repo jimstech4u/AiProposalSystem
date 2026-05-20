@@ -1,15 +1,45 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Server, Users, Database, Activity, CheckCircle2 } from 'lucide-react';
 import { useDashboardData } from './use-dashboard-data';
 import { appConfig } from '../../../lib/config';
+import { generateWithGemini, isGeminiQuotaError } from '../../../lib/gemini';
 
 export default function AdminDashboard() {
   const { stats, projects, proposals, clients, integrations, loading, health } = useDashboardData();
+  const [geminiHealth, setGeminiHealth] = useState<'checking' | 'connected' | 'missing' | 'quota' | 'error'>(
+    appConfig.geminiApiKey ? 'checking' : 'missing'
+  );
   const backendEnvReady = Boolean(appConfig.supabaseUrl && appConfig.supabaseRestUrl && appConfig.supabaseAnonKey);
-  const backendConnected = Object.values(health).some((status) => status === 'ok');
+  const backendConnected = backendEnvReady && Object.values(health).some((status) => status === 'ok');
+  const databaseReachable = Object.values(health).some((status) => status === 'ok');
   const totalRecords = projects.length + proposals.length + clients.length;
   const connectedApiCount = integrations.filter((integration) => integration.status === 'connected').length;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkGemini() {
+      if (!appConfig.geminiApiKey) {
+        setGeminiHealth('missing');
+        return;
+      }
+
+      try {
+        await generateWithGemini('Return exactly: OK');
+        if (!cancelled) setGeminiHealth('connected');
+      } catch (error) {
+        console.warn('Gemini health check failed:', error);
+        if (!cancelled) setGeminiHealth(isGeminiQuotaError(error) ? 'quota' : 'error');
+      }
+    }
+
+    void checkGemini();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const systemHealth = [
     {
       name: 'Backend API',
@@ -19,14 +49,23 @@ export default function AdminDashboard() {
     },
     {
       name: 'Database Records',
-      status: loading ? 'Checking' : totalRecords > 0 ? `${totalRecords} records` : 'Empty',
-      variant: loading || totalRecords === 0 ? 'warning' : 'success',
+      status: loading ? 'Checking' : !databaseReachable ? 'Connection issue' : totalRecords > 0 ? `${totalRecords} records` : 'Connected, no visible records',
+      variant: loading ? 'warning' : !databaseReachable ? 'danger' : 'success',
       icon: Database,
     },
     {
       name: 'Gemini Integration',
-      status: appConfig.geminiApiKey ? 'Not tested' : 'Missing env',
-      variant: appConfig.geminiApiKey ? 'warning' : 'danger',
+      status:
+        geminiHealth === 'checking'
+          ? 'Checking'
+          : geminiHealth === 'connected'
+          ? 'Connected'
+          : geminiHealth === 'missing'
+          ? 'Missing env'
+          : geminiHealth === 'quota'
+          ? 'Quota limited'
+          : 'Connection issue',
+      variant: geminiHealth === 'connected' ? 'success' : geminiHealth === 'checking' || geminiHealth === 'quota' ? 'warning' : 'danger',
       icon: Activity,
     },
     {

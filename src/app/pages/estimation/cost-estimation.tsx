@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Sparkles, Download, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, TrendingUp, TrendingDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   PieChart,
@@ -110,6 +111,12 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
           <p className="text-gray-600 mt-1">AI-powered project cost breakdown</p>
         </div>
         <div className="flex shrink-0 gap-2 sm:gap-3">
+          <Link to="/proposals/new" aria-label="Back to Proposal">
+            <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
+            </Button>
+          </Link>
           <Button variant="outline" onClick={exportCost} aria-label="Export Report" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export Report</span>

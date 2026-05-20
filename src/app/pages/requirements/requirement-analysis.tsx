@@ -7,7 +7,7 @@ import { Badge } from '../../components/ui/badge';
 import { Sparkles, Plus, X, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
-import { saveJson } from '../../../lib/storage';
+import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
 
@@ -31,23 +31,33 @@ const emptyInlineClient = {
 export default function RequirementAnalysis() {
   const navigate = useNavigate();
   const location = useLocation();
-  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
+  const routeState = location.state as { returnTo?: string; editAnalysis?: boolean } | null;
+  const returnTo = routeState?.returnTo;
+  const editAnalysis = Boolean(routeState?.editAnalysis);
+  const existingAnalysis = editAnalysis ? readJson<any>('latestAnalysis', null) : null;
   const [step, setStep] = useState(1);
   const [analyzing, setAnalyzing] = useState(false);
   
   const [projectData, setProjectData] = useState({
-    name: '',
-    client: '',
-    description: '',
-    projectType: 'web',
-    industry: 'ecommerce',
-    launchDate: '',
-    budget: 50000,
-    expectedUsers: 1000,
+    name: existingAnalysis?.project?.name ?? '',
+    client: existingAnalysis?.project?.client ?? '',
+    description: existingAnalysis?.project?.description ?? '',
+    projectType: existingAnalysis?.project?.projectType ?? 'web',
+    industry: existingAnalysis?.project?.industry ?? 'ecommerce',
+    launchDate: existingAnalysis?.project?.launchDate ?? '',
+    budget: existingAnalysis?.project?.budget ?? 50000,
+    expectedUsers: existingAnalysis?.project?.expectedUsers ?? 1000,
   });
 
   const [requirements, setRequirements] = useState([
-    { id: 1, description: '', category: 'auth', priority: 'high' },
+    ...(existingAnalysis?.requirements?.length
+      ? existingAnalysis.requirements.map((requirement: any, index: number) => ({
+          id: Number(requirement.id) || Date.now() + index,
+          description: requirement.description ?? '',
+          category: requirement.category ?? 'auth',
+          priority: requirement.priority ?? 'high',
+        }))
+      : [{ id: 1, description: '', category: 'auth', priority: 'high' }]),
   ]);
   const session = getStoredSession();
   const [clients, setClients] = useState<ClientRow[]>([]);
@@ -69,16 +79,38 @@ export default function RequirementAnalysis() {
           'select=id,company_name,contact_name,contact_email,contact_phone,industry&order=company_name.asc'
         );
         setClients(rows);
+        const clientId = existingAnalysis?.project?.clientId;
+        if (clientId && rows.some((client) => client.id === clientId)) {
+          setSelectedClientId(clientId);
+        } else if (existingAnalysis?.project?.client) {
+          const matchingClient = rows.find((client) => client.company_name === existingAnalysis.project.client);
+          if (matchingClient) setSelectedClientId(matchingClient.id);
+        }
       } catch (error) {
-        console.warn('Client loading skipped:', error);
-        toast.warning('Unable to load saved clients right now.');
+        try {
+          const rows = await selectRows<ClientRow>(
+            'clients',
+            'select=id,company_name,industry&order=created_at.desc'
+          );
+          setClients(rows);
+          const clientId = existingAnalysis?.project?.clientId;
+          if (clientId && rows.some((client) => client.id === clientId)) {
+            setSelectedClientId(clientId);
+          } else if (existingAnalysis?.project?.client) {
+            const matchingClient = rows.find((client) => client.company_name === existingAnalysis.project.client);
+            if (matchingClient) setSelectedClientId(matchingClient.id);
+          }
+        } catch (fallbackError) {
+          console.warn('Client loading skipped:', fallbackError);
+          toast.warning('Unable to load saved clients. Check your session and client read permissions.');
+        }
       } finally {
         setClientsLoading(false);
       }
     };
 
     void loadClients();
-  }, []);
+  }, [existingAnalysis?.project?.client, existingAnalysis?.project?.clientId]);
 
   const selectClient = (clientId: string) => {
     setSelectedClientId(clientId);

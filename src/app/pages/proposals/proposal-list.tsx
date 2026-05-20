@@ -144,24 +144,24 @@ export default function ProposalList() {
                 </div>
                 <CardTitle className="mt-4">{proposal.title}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 <div className="text-sm text-gray-600">
                   <p>Template: {proposal.template_name || 'Not set'}</p>
                   <p>Version: {proposal.version}</p>
                   <p>Date: {new Date(proposal.created_at).toLocaleDateString()}</p>
                 </div>
-                <Link to={`/proposals/${proposal.id}`}>
+                <Link to={`/proposals/${proposal.id}`} className="block">
                   <Button variant="outline" className="w-full">
                     View Details
                   </Button>
                 </Link>
                 {(canUpdate || canDelete) && (
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 pt-1">
                     {canUpdate && (
                       <select
                         value={proposal.status}
                         onChange={(event) => changeStatus(proposal, event.target.value as ProposalRow['status'])}
-                        className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-2 text-sm"
+                        className="h-10 min-w-0 rounded-md border border-gray-300 px-3 py-2 text-sm"
                       >
                         <option value="draft">Draft</option>
                         <option value="in_review">In Review</option>
@@ -173,7 +173,7 @@ export default function ProposalList() {
                       </select>
                     )}
                     {canDelete && (
-                      <Button variant="danger" size="sm" onClick={() => deleteProposal(proposal)}>
+                      <Button variant="danger" size="sm" onClick={() => deleteProposal(proposal)} aria-label="Delete Proposal" className="h-10 w-10 px-0">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
