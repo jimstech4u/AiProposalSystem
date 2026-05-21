@@ -183,15 +183,27 @@ export default function CostEstimation() {
     setContingencyPercent(cleanNumber(latestEstimate.contingency_percent, 10));
     const items = await selectRows<EstimateItemRow>('cost_estimation_items', `select=module_name,resource_role,hours,hourly_rate,multiplier,amount&estimation_id=eq.${latestEstimate.id}`);
     const modules = itemsToModules(items);
+    const savedDevelopmentCost = cleanNumber(latestEstimate.development_cost);
+    const moduleTotal = modules.reduce((sum, item) => sum + cleanNumber(item.cost), 0);
+    const normalizedModules = modules.length && moduleTotal > 0 && savedDevelopmentCost > 0
+      ? modules.map((item) => ({ ...item, cost: Math.round(cleanNumber(item.cost) * (savedDevelopmentCost / moduleTotal)) }))
+      : modules;
+    if (normalizedModules.length) {
+      const normalizedTotal = normalizedModules.reduce((sum, item) => sum + cleanNumber(item.cost), 0);
+      normalizedModules[normalizedModules.length - 1] = {
+        ...normalizedModules[normalizedModules.length - 1],
+        cost: cleanNumber(normalizedModules[normalizedModules.length - 1].cost) + (savedDevelopmentCost - normalizedTotal),
+      };
+    }
     const nextModules = modules.length
-      ? modules
+      ? normalizedModules
       : [{
           name: 'Saved development estimate',
           role: 'Project team',
           hours: 0,
           rate: 0,
           multiplier: 1,
-          cost: cleanNumber(latestEstimate.development_cost),
+          cost: savedDevelopmentCost,
           complexity: 'saved',
           confidence: cleanNumber(latestEstimate.confidence_score, 0),
         }];
