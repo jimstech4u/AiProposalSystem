@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, Check, Code, Database, Server, Cloud, Download, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
+import { extractJsonObject, generateWithNvidia, getNvidiaErrorMessage } from '../../../lib/nvidia';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows } from '../../../lib/supabase';
@@ -213,7 +213,7 @@ Analysis: ${JSON.stringify(latestAnalysis)}
 Team expertise: ${teamExpertise}
 Budget constraint: ${budgetConstraint}
 Timeline constraint: ${timelineConstraint}`;
-      const generated = extractJsonObject(await generateWithGemini(prompt), { recommendedStack: null, alternatives: [] });
+      const generated = extractJsonObject(await generateWithNvidia(prompt), { recommendedStack: null, alternatives: [] });
       setRecommendedStack(generated.recommendedStack);
       setAlternatives(generated.alternatives);
       saveJson('latestTechStack', generated.recommendedStack);
@@ -233,7 +233,7 @@ Timeline constraint: ${timelineConstraint}`;
         await persistRecommendation(fallback.recommendedStack, fallback.alternatives);
         setRecommendationSaved(true);
       }
-      toast.warning(`Saved a local technology recommendation. ${getGeminiErrorMessage(error)}`);
+      toast.warning(`Saved a local technology recommendation. ${getNvidiaErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setGenerating(false);

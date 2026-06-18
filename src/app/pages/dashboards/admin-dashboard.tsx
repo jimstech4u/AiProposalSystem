@@ -6,7 +6,7 @@ import { appConfig } from '../../../lib/config';
 
 export default function AdminDashboard() {
   const { stats, projects, proposals, clients, integrations, loading, health } = useDashboardData();
-  const geminiConfigured = Boolean(appConfig.geminiApiKey);
+  const nvidiaConfigured = Boolean(appConfig.nvidiaApiKey);
   const backendEnvReady = Boolean(appConfig.supabaseUrl && appConfig.supabaseRestUrl && appConfig.supabaseAnonKey);
   const backendConnected = backendEnvReady && Object.values(health).some((status) => status === 'ok');
   const databaseReachable = Object.values(health).some((status) => status === 'ok');
@@ -27,9 +27,9 @@ export default function AdminDashboard() {
       icon: Database,
     },
     {
-      name: 'Gemini Integration',
-      status: geminiConfigured ? 'Configured' : 'Missing env',
-      variant: geminiConfigured ? 'success' : 'danger',
+      name: 'NVIDIA Integration',
+      status: nvidiaConfigured ? 'Configured' : 'Missing env',
+      variant: nvidiaConfigured ? 'success' : 'danger',
       icon: Activity,
     },
     {

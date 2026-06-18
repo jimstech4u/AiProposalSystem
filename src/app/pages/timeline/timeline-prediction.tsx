@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, Calendar, Check, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
+import { extractJsonObject, generateWithNvidia, getNvidiaErrorMessage } from '../../../lib/nvidia';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows } from '../../../lib/supabase';
@@ -252,7 +252,7 @@ Risk adjustment: ${riskAdjustment}%
 Project: ${JSON.stringify(selectedProject)}
 Analysis: ${JSON.stringify(latestAnalysis)}
 Historical timeline average for similar projects: ${historicalAverage || 'unavailable'} weeks.`;
-      const generated = extractJsonObject(await generateWithGemini(prompt), {});
+      const generated = extractJsonObject(await generateWithNvidia(prompt), {});
       const fallback = localTimelineFromProject(selectedProject, latestAnalysis);
       const nextPhases = (generated.phases?.length ? generated.phases : fallback.phases).map((phase: any, index: number) => ({
         name: String(phase.name ?? `Phase ${index + 1}`),
@@ -278,9 +278,9 @@ Historical timeline average for similar projects: ${historicalAverage || 'unavai
       saveJson('latestTimelineMilestones', fallback.milestones);
       try {
         await saveTimeline(fallback.phases, fallback.milestones);
-        toast.warning(`Saved a local timeline. ${getGeminiErrorMessage(error)}`);
+        toast.warning(`Saved a local timeline. ${getNvidiaErrorMessage(error)}`);
       } catch {
-        toast.warning(`Local timeline prepared. ${getGeminiErrorMessage(error)}`);
+        toast.warning(`Local timeline prepared. ${getNvidiaErrorMessage(error)}`);
       }
       console.warn(error);
     } finally {

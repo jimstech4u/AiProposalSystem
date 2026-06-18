@@ -188,7 +188,7 @@ Potential future enhancements:
 
 ## Development Notes
 
-The application uses Supabase-backed operational records and Gemini-assisted generation.
+The application uses Supabase-backed operational records and NVIDIA-assisted generation.
 
 The application includes:
 - Complex state management

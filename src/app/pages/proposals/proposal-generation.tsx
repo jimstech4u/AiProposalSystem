@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2, UserRound, ListChecks, Cpu, Calculator, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateWithGemini, getGeminiErrorMessage, getGeminiRetryAfterMs, isGeminiQuotaError, isGeminiRetryableError } from '../../../lib/gemini';
+import { generateWithNvidia, getNvidiaErrorMessage, getNvidiaRetryAfterMs, isNvidiaQuotaError, isNvidiaRetryableError } from '../../../lib/nvidia';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, removeJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
@@ -696,7 +696,7 @@ Timeline prediction: ${JSON.stringify(timelinePrediction)}
 Template: ${templateName}
 Template sections: ${JSON.stringify(templates.find((template) => template.id === selectedTemplateId)?.sections ?? sections.map((section) => section.name))}
 Return polished proposal text only. Do not return JSON or markdown fences.`;
-      return generateWithGemini(prompt);
+      return generateWithNvidia(prompt);
   };
 
   const generateSectionTextWithRetry = async (sectionId: string) => {
@@ -705,17 +705,17 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
       try {
         return await generateSectionText(sectionId);
       } catch (error) {
-        if (!isGeminiRetryableError(error) || attempt === maxAttempts) {
+        if (!isNvidiaRetryableError(error) || attempt === maxAttempts) {
           throw error;
         }
 
-        const retryAfter = getGeminiRetryAfterMs(error);
-        toast.warning(`Gemini is temporarily unavailable for ${sections.find((section) => section.id === sectionId)?.name}. Retrying in ${Math.ceil(retryAfter / 1000)}s.`);
+        const retryAfter = getNvidiaRetryAfterMs(error);
+        toast.warning(`The AI service is temporarily unavailable for ${sections.find((section) => section.id === sectionId)?.name}. Retrying in ${Math.ceil(retryAfter / 1000)}s.`);
         await sleep(retryAfter + 500);
       }
     }
 
-    throw new Error('Gemini retry failed.');
+    throw new Error('AI retry failed.');
   };
 
   const handleGenerateSection = async (sectionId = activeSection) => {
@@ -730,7 +730,7 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
       const fallback = `${activeSectionName}\n\nThis section should be completed using the project requirements, client objectives, technical constraints, delivery assumptions, and acceptance criteria captured during requirement analysis.`;
       const nextContent = { ...content, [sectionId]: fallback };
       setContent(nextContent);
-      toast.warning(`Local fallback inserted. ${getGeminiErrorMessage(error)}`);
+      toast.warning(`Local fallback inserted. ${getNvidiaErrorMessage(error)}`);
       console.warn(error);
     } finally {
       setGenerating(false);
@@ -753,13 +753,13 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
       }
       toast.success('All proposal sections generated and saved as an online draft.');
     } catch (error) {
-      if (isGeminiQuotaError(error)) {
-        toast.warning('Gemini quota paused generation. Completed sections were saved online. Click Generate All again later to continue remaining sections.');
+      if (isNvidiaQuotaError(error)) {
+        toast.warning('AI quota paused generation. Completed sections were saved online. Click Generate All again later to continue remaining sections.');
       } else {
         const nextContent = { ...content, ...buildLocalProposalContent(project, latestAnalysis) };
         setContent(nextContent);
         await saveProposal(nextContent);
-        toast.warning(`Generated a local proposal fallback. ${getGeminiErrorMessage(error)}`);
+        toast.warning(`Generated a local proposal fallback. ${getNvidiaErrorMessage(error)}`);
       }
       console.warn(error);
     } finally {
@@ -1045,7 +1045,7 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                   <textarea
                     className="h-72 w-full rounded-lg border border-gray-300 p-3 text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 sm:h-96 sm:p-5"
                     value={content[activeSection] ?? ''}
-                    placeholder="Generate this section with Gemini or write the content manually."
+                    placeholder="Generate this section with AI or write the content manually."
                     onChange={(event) => setContent((current) => ({ ...current, [activeSection]: event.target.value }))}
                   />
                 </CardContent>
@@ -1083,7 +1083,7 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                         )}
                       </select>
                       <p className="mt-1.5 text-xs leading-5 text-gray-500">
-                        The selected template is saved with the proposal and included in Gemini section prompts.
+                        The selected template is saved with the proposal and included in AI section prompts.
                       </p>
                     </div>
                     <div>

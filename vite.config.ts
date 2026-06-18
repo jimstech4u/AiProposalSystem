@@ -17,6 +17,19 @@ export default defineConfig({
     },
   },
 
+  server: {
+    proxy: {
+      // NVIDIA's API does not send CORS headers, so browser calls are proxied
+      // here in dev. /nvidia-api/* -> https://integrate.api.nvidia.com/*
+      '/nvidia-api': {
+        target: 'https://integrate.api.nvidia.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/nvidia-api/, ''),
+      },
+    },
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

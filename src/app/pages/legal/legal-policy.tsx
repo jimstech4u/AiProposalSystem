@@ -52,7 +52,7 @@ const cookiesSections = [
   },
   {
     title: 'No Advertising Tracking',
-    body: 'The application does not use advertising cookies. Any third-party request is limited to configured business services such as authentication and Gemini-assisted generation.',
+    body: 'The application does not use advertising cookies. Any third-party request is limited to configured business services such as authentication and AI-assisted generation.',
   },
   {
     title: 'Managing Preferences',

@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Sparkles, Plus, X, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
+import { extractJsonObject, generateWithNvidia, getNvidiaErrorMessage } from '../../../lib/nvidia';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
@@ -279,7 +279,7 @@ export default function RequirementAnalysis() {
 
 Project: ${JSON.stringify(analysisProjectData)}
 Requirements: ${JSON.stringify(usableRequirements)}`;
-      const text = await generateWithGemini(prompt);
+      const text = await generateWithNvidia(prompt);
       const analysis = extractJsonObject(text, fallback);
       saveJson('latestAnalysis', { ...analysis, project: analysisProjectData, requirements, generatedAt: new Date().toISOString() });
 
@@ -324,7 +324,7 @@ Requirements: ${JSON.stringify(usableRequirements)}`;
     } catch (error) {
       saveJson('latestAnalysis', { ...fallback, generatedAt: new Date().toISOString() });
       setAnalyzing(false);
-      toast.warning(`Generated a local analysis fallback. ${getGeminiErrorMessage(error)}`);
+      toast.warning(`Generated a local analysis fallback. ${getNvidiaErrorMessage(error)}`);
       console.warn(error);
       navigate('/requirements/1/results');
     }

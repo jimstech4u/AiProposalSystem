@@ -17,7 +17,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { extractJsonObject, generateWithGemini, getGeminiErrorMessage } from '../../../lib/gemini';
+import { extractJsonObject, generateWithNvidia, getNvidiaErrorMessage } from '../../../lib/nvidia';
 import { downloadTextFile, toReport } from '../../../lib/export';
 import { readJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows } from '../../../lib/supabase';
@@ -307,7 +307,7 @@ Return only valid JSON: {moduleData:[{name,role,hours,rate,multiplier,cost,compl
 Use these controls: base hourly rate ${baseRate}, infrastructure baseline ${infrastructureCost}, third-party baseline ${thirdPartyCost}, contingency ${contingencyPercent}%.
 Project: ${JSON.stringify(selectedProject)}
 Analysis: ${JSON.stringify(latestAnalysis)}`;
-      const generated = extractJsonObject(await generateWithGemini(prompt), {});
+      const generated = extractJsonObject(await generateWithNvidia(prompt), {});
       const modules = (generated.moduleData?.length ? generated.moduleData : localEstimateFromProject(selectedProject, latestAnalysis, baseRate)).map((item: any) => ({
         name: String(item.name ?? 'Project module'),
         role: String(item.role ?? 'Software Engineer'),
@@ -334,9 +334,9 @@ Analysis: ${JSON.stringify(latestAnalysis)}`;
       saveJson('latestCostModules', modules);
       try {
         await saveEstimate(modules);
-        toast.warning(`Saved a local cost estimate. ${getGeminiErrorMessage(error)}`);
+        toast.warning(`Saved a local cost estimate. ${getNvidiaErrorMessage(error)}`);
       } catch {
-        toast.warning(`Local cost estimate prepared. ${getGeminiErrorMessage(error)}`);
+        toast.warning(`Local cost estimate prepared. ${getNvidiaErrorMessage(error)}`);
       }
       console.warn(error);
     } finally {
