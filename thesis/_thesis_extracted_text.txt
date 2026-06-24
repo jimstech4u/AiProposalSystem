@@ -1,0 +1,973 @@
+Adventist University of Central Africa
+DESIGN AND IMPLEMENTATION OF AN AI-POWERED TECHNICAL PROPOSAL AND COST ESTIMATION SYSTEM FOR SOFTWARE  DEVELOPMENT FIRMS
+Case study: Jimstech Innovations Nigeria Limited
+A Final Year Project Presented in partial fulfillment of the requirements
+for the degree of BACHELOR OF SCIENCE IN INFORMATION
+TECHNOLOGY
+Major in
+Software Engineering
+By
+AJIBEWA Johnson Irekanmi
+June, 2026
+ABSTRACT
+A final year project for a Bachelor’s Degree in Science in Information Technology
+Emphasis in software engineering
+Adventist University of Central Africa
+Title: Design and Implementation of an AI-Powered Technical Proposal and Cost Estimation For Software Development Firms
+Name of the Researcher: AJIBEWA  Johnson Irekanmi
+Name of Faculty Advisor: SEBAGENZI Jason
+Date Completed: May 2026
+Software development firms continually face challenges in preparing accurate technical proposals, estimating development costs, and predicting project timelines. These processes are typically manual, heavily dependent on individual experience, and prone to inconsistencies that negatively affect pricing accuracy, proposal quality, and overall project planning. Jimstech Innovations Nigeria Limited, a technology company dedicated to building client and stakeholder ideas into reality through technology innovation, is one such firm that experiences these operational inefficiencies. Despite advancements in project management tools and estimation of software, most existing solutions remain generic and fail to address the specific complexities inherent in software development engagements. Current tools largely rely on manual input, thereby lacking the intelligence required to analyze technical requirements, suggest optimal architectures, or generate context-aware cost breakdowns.
+This research presents the design and implementation of an AI-Powered Technical Proposal and Cost Estimation System specifically tailored for software development firms. The system automates the requirement analysis process, generates structured technical proposals, recommends appropriate technology stacks and system architectures, and provides data-driven cost and timeline estimations based on historical project data and predefined parameters.
+The system was developed following an Incremental Software Development Model and incorporates Large Language Model (LLM) assisted analysis, generation, and estimation — accessed through the NVIDIA NIM API (model meta/llama-3.3-70b-instruct) with deterministic local fallbacks — together with a structured proposal generation engine, a project repository for historical reference, and a role-based user management module.
+DECLARATION
+AJIBEWA Johnson Irekanmi, Student ID Number 25626, is a student at Adventist University of Central Africa in the Faculty of Information Technology, Department of Software Engineering. I do hereby declare that this research project report is entirely the real reflection of my own original work and experience to the best of my knowledge. It has never been either partially or wholly presented in any university or any higher learning institution.
+Signature: … …… … … … … ...
+Date: … ….…/…...…/…. …..
+APPROVAL
+I, SEBAGENZI Jason, hereby certify that this final year project has been done under my supervision and submitted with my approval.
+Signature: … …… … … … … ……
+Date: … …… /…… … …/… ……
+DEDICATION
+I dedicate this final year project
+To my parents, for their constant love,
+prayers and support.
+To my supervisor and all my lecturers for their guidance,
+and pouring into me as much as they could.
+To my beloved siblings,
+classmates and friends, for their support, love,
+prayers and for challenging me,
+I appreciate you, thanks.
+To Jimstech Innovations Nigeria Limited, for the opportunity and support.
+TABLE OF CONTENT
+ABSTRACT	i
+DECLARATION	ii
+APPROVAL	iii
+DEDICATION	iv
+TABLE OF CONTENT	v
+LIST OF FIGURES	viii
+LIST OF TABLES	ix
+LIST OF ABBREVIATIONS	x
+ACKNOWLEDGMENTS	xi
+CHAPTER 1	1
+GENERAL INTRODUCTION	1
+Introduction	1
+Background of the Study	2
+Statement of the Problem	3
+Choice and Motivation of the Study	4
+Objectives of the Study	5
+General Objective	5
+Specific Objectives	5
+Scope of the Study	6
+Methodology and Techniques Used in the Study	7
+Observation	7
+Documentation Review	7
+Interviews	7
+Expected Results	9
+Organization of the Work	10
+CHAPTER 2	11
+ANALYSIS OF THE EXISTING SYSTEM	11
+Introduction	11
+Description of the Current System Environment	11
+Historical Background	11
+Mission	12
+Vision	12
+Description of the Current System	12
+Analysis of the Current System	14
+Modeling of the Current System	15
+Problems of the Current System	16
+Proposed Solutions	18
+System Requirements	19
+Functional Requirements	19
+Non-Functional Requirements	21
+CHAPTER 3	22
+REQUIREMENTS ANALYSIS AND DESIGN OF THE NEW	22
+SYSTEM	22
+Introduction	22
+Analysis and Design Methodology	23
+Object Oriented Methodology	24
+Unified Modeling Language	24
+Design of the New System	25
+Use Case Diagram	26
+Class Diagram	42
+Sequence Diagrams	44
+Activity Diagram	53
+Database Diagram	54
+Elements of a Database Diagram	54
+Data Dictionary	56
+System Architectural Design	59
+CHAPTER 4	63
+IMPLEMENTATION OF THE NEW SYSTEM	63
+Introduction	63
+Technologies and Tools Used	63
+Software Testing	71
+Unit Testing	71
+Integration Testing	71
+Validation Testing	72
+Hardware and Software Requirements	73
+Client-Side Requirements	73
+Hardware Requirements	73
+Server-Side Requirements	73
+Hardware Requirements	74
+CHAPTER 5	75
+CONCLUSION AND RECOMMENDATIONS Conclusion	75
+Recommendations	76
+REFERENCES	77
+Books	77
+Journals	77
+Websites	77
+APPENDICES	78
+Curriculum Vitae	79
+Data collection letter	81
+Approval Letter	82
+Data Collection Authorisation Letter	83
+LIST OF FIGURES
+Figure 1: Modeling of the Current Manual Proposal Process	15
+Figure 2: Actor Name	26
+Figure 3: Use case	27
+Figure 4: Association	27
+Figure 5: System Boundary	27
+Figure 6: Include	27
+Figure 7: Use Case Diagram	28
+Figure 8: Class Name	42
+Figure 9: Association	43
+Figure 10: Generalization	43
+Figure 11: Aggregation	43
+Figure 12: Composition	43
+Figure 13: Class Diagram for AI Proposal System	44
+Figure 14: Sign Up Sequence Diagram	46
+Figure 15: Sign In Sequence Diagram	47
+Figure 16: Submit Project Requirements Sequence Diagram	48
+Figure 17: Generate Proposal Sequence Diagram	49
+Figure 18: Cost Estimation Sequence Diagram	50
+Figure 19: Timeline Prediction Sequence Diagram	51
+Figure 20: Send Notification Sequence Diagram	52
+Figure 21: Activity Diagram	53
+Figure 22: Database Diagram	55
+Figure 23: System Architecture  Diagram	61
+Figure 24: Signup Form	64
+Figure 25: Login Form	65
+Figure 26: Proposal Generation Module	68
+Figure 27: Cost Estimation Report Page	69
+Figure 28: Admin / System Management Page	70
+LIST OF TABLES
+Table 1: Use Case Description for Register User Account	29
+Table 2: Use Case Description for Login into System	30
+Table 3: Use Case Description for Submit Project Requirements	31
+Table 4: Use Case Description for Analyze Project Requirements	32
+Table 5: Use Case Description for Generate Project Proposal	33
+Table 6: Use Case Description for Estimate Project Cost	34
+Table 7: Use Case Description for Predict Project Timeline	35
+Table 8: Use Case Description for Recommend Project Technologies	36
+Table 9: Use Case Description for Generate Reports and Analytics	38
+Table 10: Use Case Description for Manage Templates and Integrations	39
+Table 11: Use Case Description for Perform Security Audit	40
+Table 12: Use Case Description for Manage User Accounts	41
+Table 13: Elements of a Sequence Diagram	45
+Table 14: Elements of a Database Diagram	54
+Table 15: User Profiles Tables	56
+Table 16: Projects Table	57
+Table 17: Proposal Table	57
+Table 18: Cost Estimation Table	58
+Table 19: Technology Recommendations Table	59
+Table 20: Notifications Table	59
+LIST OF ABBREVIATIONS
+ALT                           Alternative Optional
+API           Application Programming Interface
+AUCA       Adventist University of Central Africa
+HTTP        Hypertext Transfer Protocol
+IT               Information Technology
+UI              User Interface
+UX                                       User Experience
+AI              Artificial Intelligence
+CSS            Cascading Style Sheets
+DOM          Document Object Model
+FK              Foreign Key
+GB             Gigabyte
+HD             Hard Disk
+HTTPS        Hypertext Transfer Protocol Secure
+IEEE           Institute of Electrical and Electronics Engineers
+IP                 Internet Protocol
+JWT            JSON Web Token
+LLM           Large Language Model
+LTS            Long-Term Support
+MB             Megabyte
+MUI           Material UI
+NAS           Network Attached Storage
+NFR           Non-Functional Requirement
+NIC           Network Interface Card
+NIM           NVIDIA Inference Microservices
+NLP            Natural Language Processing
+PK             Primary Key
+PSU            Power Supply Unit
+RAM           Random Access Memory
+RLS            Row-Level Security
+SAD            System Analysis and Design
+SDLC           Software Development Life Cycle
+ACKNOWLEDGMENTS
+Firstly, I would like to express my sincere gratitude to Almighty God for His blessings, guidance, and protection throughout this project. His grace has been my strength in every step of this journey, and I am truly thankful for His constant presence in my life. It is by His divine wisdom and provision that I was able to overcome every obstacle encountered during this research. I acknowledge that without His favour and sustaining power, the completion of this work would not have been possible. To Him be all glory, honour, and praise.
+My sincere thanks go to the academic staff of the Faculty of Information Technology, Department of Software Engineering, and the entire Administration at AUCA. The quality education I received has played a vital role in shaping my academic and professional development. The knowledge, skills, and values imparted through your teachings have equipped me with the tools necessary to undertake and complete this research.
+I extend my heartfelt appreciation to Dr. SEBANGENZI Jason, my supervisor, for his consistent guidance, patience, and support throughout this project. His expertise and constructive feedback were invaluable to the successful completion of this work.
+I am deeply grateful to my parents for their unwavering love, support, prayers, and encouragement. Your belief in me and your sacrifices have been the foundation of my success.
+Thank you for always being there for me. To my siblings, thank you for your inspiration and continuous encouragement that pushed me to stay focused and achieve my goals.
+To My Classmates at AUCA, I am thankful for their encouragement, collaboration, and companionship. Your support has made this academic journey enriching and memorable.
+I want to express my sincere gratitude to the Almighty God for His blessings and guidance
+Throughout this project. His grace and strength have carried me through every challenge, and for that, I am truly thankful.
+May God bless you all abundantly.
+AJIBEWA Johnson Irekanmi
+CHAPTER 1
+GENERAL INTRODUCTION
+Introduction
+The global software development industry is characterized by rapid growth, increasing client demands, and intense competition among firms striving to deliver quality solutions within tight timelines and budgets. At the heart of every successful software project lies an accurate and well-structured technical proposal accompanied by a realistic cost and timeline estimation. These foundational documents serve as the contractual and operational basis upon which client relationships and project outcomes are built.
+Despite their critical importance, the process of preparing technical proposals and estimating project costs in most software development firms remains largely manual, experience-driven, and inconsistent. Software engineers and project managers often rely on personal judgment and informal historical references to scope projects and determine pricing, a practice that introduces significant variability and risk. Miscalculations in cost or timeline estimates can result in financial losses, strained client relationships, and project failures that damage the firm's reputation.
+Jimstech Innovations Nigeria Limited, a technology company registered in Nigeria and dedicated to turning client and stakeholder ideas into reality through technology innovation, faces these exact challenges. As the company grows and takes on increasingly diverse and complex projects, the need for a systematic, intelligent, and automated approach to proposal generation and cost estimation has become apparent. The absence of such a system not only limits the firm's operational efficiency but also poses risks to the consistency and professionalism of its client engagements. This research is therefore motivated by the practical need to address these inefficiencies within Jimstech and, by extension, similar software development firms facing comparable challenges.
+Artificial intelligence offers transformation potential in addressing these operational inefficiencies. Through natural language processing, machine learning-based estimation models, and intelligent recommendation engines, AI systems can analyze project requirements, suggest appropriate technology stacks, generate structured proposal documents, and produce data-driven cost and timeline projections with far greater consistency and accuracy than manual processes allow.
+Background of the Study
+Software development firms across Africa and globally are under increasing pressure to deliver precise project proposals and accurate cost estimates to win client confidence and maintain profitability. The challenge is particularly acute for growing firms like Jimstech Innovations Nigeria Limited, which operates in the competitive Nigerian technology ecosystem where speed, precision, and professionalism in client engagement are critical differentiation.
+Currently, the proposal and estimation process at most software development firms, including Jimstech Innovations, relies heavily on manual methods. A project manager or senior engineer typically reviews a client brief, draws experience, consults team members informally, and assembles a proposal document using generic templates. Cost estimates are derived from rough calculations based on team rates and guessed timelines, often without systematic reference to historical project data or structured estimation methodologies.
+This approach leads to a number of well-documented problems in the software engineering literature. According to the Standish Group's CHAOS Report (2020), a significant proportion of software projects exceed their original budget and timeline estimates, with poor initial estimation being a primary contributing factor. Research by Jorgensen and Shepperd (2007) further established that expert-based estimation, while widely practiced, is subject to cognitive biases and anchoring effects that reduce accuracy over time.
+The emergence of artificial intelligence and machine learning has opened new avenues for addressing these estimation challenges. Studies by Azzeh et al. (2015) and Nassif et al. (2019) have demonstrated that AI-based models can achieve significantly higher estimation accuracy than traditional parametric and expert-based methods when prompted on sufficient historical project data.
+Furthermore, large language models and natural language processing technologies now make it possible to automatically analyze client requirement documents and generate structured proposal content. Jimstech Innovations Nigeria Limited was incorporated under the Companies and Allied Matters Act 2020 in Nigeria with a mandate to carry on the business of software development and digital solutions, educational technology, artificial intelligence and data analytic s, and e-commerce and online marketplaces. As the company expands its client base and project portfolio, the absence of a systematic proposal and estimation system represents a significant operational gap that this research seeks to address.
+Statement of the Problem
+Jimstech Innovations Nigeria Limited, like many software development firms operating in the Nigerian technology sector, encounters persistent operational challenges in the areas of technical proposal preparation and project cost estimation. These challenges have direct consequences for the firm's efficiency, profitability, client satisfaction, and competitive positioning. The core problems identified include:
+Absence of a centralized digital system for capturing, analyzing, and processing client project requirements in a structured manner, resulting in incomplete or inconsistent requirement of documentation that leads to inaccurate proposal scoping.
+Heavy reliance on manual and experience-based methods for generating technical proposals, which consumes significant time and produces inconsistent documentation quality across different team members and project types.
+Lack of a data-driven cost and timeline estimation framework, causing frequent budget overruns and missed deadlines that undermine client trust and project profitability.
+Absence of a systematic technology stack recommendation mechanism, leading to ad hoc technology decisions that may not always align with project requirements or organizational capabilities.
+No centralized project repository to store and retrieve historical project data, proposals, cost records, and outcomes for reference and continuous improvement of estimation accuracy.
+Inadequate role-based access controls and user management for the proposal and estimation workflow, resulting in lack of accountability and potential for unauthorized modifications to critical project documents. In the absence of clearly defined access permissions, sensitive proposal information and financial estimates may be viewed or altered by individuals without the appropriate authorization, raising concerns about data integrity, confidentiality, and governance.
+These problems collectively result in slow and inefficient clients on boarding, increased risk of financial losses, and reduced capacity for the organization to scale its operations effectively. There is therefore a clear and urgent need for an intelligent, automated system that can streamline these processes and deliver measurable improvements in proposal quality and estimation accuracy.
+Choice and Motivation of the Study
+The decision to design and implement an AI-Powered Technical Proposal and Cost Estimation System for Jimstech Innovations Nigeria Limited is driven by a combination of academic, organizational, and personal motivations.
+This study is motivated by a desire to contribute to the academic excellence and research portfolio of the Adventist University of Central Africa (AUCA). The application of artificial intelligence to software project estimation and proposal automation represents a frontier area of research in software engineering and information technology management. By providing a detailed case study and functional prototype grounded in the operational realities of a Nigerian technology firm, this research aims to enrich AUCA's body of knowledge and serve as a practical resource for future students and scholars interested in AI applications in software development management.
+Jimstech Innovations Nigeria Limited has expressed strong interest in this project, recognizing that it aligns with modern software engineering practices and intelligent automation in project planning and digital transformation services. The management confirmed in their formal approval letter dated January 24, 2026, that the AI-Powered Proposal and Cost Estimation System would add significant value to the firm by enhancing efficiency in project requirement analysis, automating technical proposal generation, improving cost and timeline estimation accuracy, and supporting faster client onboarding and project scoping processes. This institutional endorsement reflects a genuine organizational need and ensures that the system developed through this research will be grounded in practical requirements rather than hypothetical assumptions. As the company grows and seeks to serve a larger and more diverse client base, having a systematic and intelligent proposal system will directly contribute to its mission of building ideas into reality through technology innovation. Furthermore, the adoption of such a system positions Jimstech to compete more effectively in a technology landscape where clients increasingly expect prompt, professional, and data-backed project proposals.
+As a student and researcher, I am personally motivated by the opportunity to apply advanced IT skills and academic knowledge to real-world challenges within the technology industry. This project represents a meaningful bridge between theoretical learning in areas such as artificial intelligence, database management, system analysis and design, and software engineering, and the practical demands of running an efficient technology firm. It is both a learning journey and a contribution to Nigeria's growing technology ecosystem.
+Objectives of the Study
+General Objective
+The aim of this study is to design and implement an AI-powered system that automates technical proposal generation and supports accurate cost and timeline estimation for software development projects at Jimstech Innovations Nigeria Limited. This overarching objective seeks to replace the firm's current manual and inconsistent processes with an intelligent, integrated platform that enhances operational efficiency, improves proposal quality, and delivers measurable value to both the organization and its clients.
+Specific Objectives
+To analyze the existing manual proposal preparation and cost estimation processes at Jimstech Innovations Nigeria Limited and identify key inefficiencies and gaps.
+To design a structured requirement analysis module that captures, categorizes, and processes client project requirements using AI-assisted techniques.
+To implement an intelligent proposal generation engine capable of producing structured and professional technical proposals based on analyzed requirements, significantly reducing the time spent on manual drafting while ensuring consistency across all client-facing documentation.
+To develop a data-driven cost and timeline estimation module that leverages historical project data and AI estimation models to move beyond subjective, experience-based estimation and deliver more reliable and defensible projections.
+To create a technology stack and system architecture recommendation module that suggests appropriate technologies based on project type and scope, supporting more informed and consistent technology decisions across engagements.
+To build a centralized project repository for storing and retrieving historical project proposals, cost records, and outcomes, serving as the firm's institutional memory and enabling continuous improvement of estimation accuracy over time.
+To implement a role-based user and access management module that enforces access permissions for each category of system user, strengthening internal governance and ensuring accountability within the proposal workflow.
+To evaluate the implemented system against functional and non-functional requirements through structured testing and user acceptance evaluation to validate its effectiveness, usability, and readiness for organizational deployment.
+Scope of the Study
+This project focuses on the design and implementation of an AI-Powered Technical Proposal and Cost Estimation System specifically tailored to the operational needs of Jimstech Innovations Nigeria Limited. The system covers seven core functional modules, each addressing a distinct aspect of the proposal and estimation workflow:
+Requirement Analysis Module: Enables project managers and software engineers to capture and analyze client project requirements through a structured digital interface, with AI-assisted categorization of requirement complexity and project scope.
+AI Proposal Generation Module: Automatically generates structured technical proposal documents including project overview, proposed system architecture, recommended technology stack, development phases, and deliverables based on analyzed requirements.
+Cost Estimation Module: Calculates projected development costs using AI-supported models that factor in project complexity, team composition, resource requirements, and historical cost data from similar past projects.
+Timeline Prediction Module: Estimates project duration by analyzing development phases, team capacity, complexity scores, and historical timeline data to produce realistic milestone-based project schedules.
+Technology Recommendation Module: Suggests appropriate programming languages, frameworks, databases, and deployment technologies based on the project type, client requirements, and industry best practices.
+Project Repository Module: Maintains a searchable database of past projects, proposals, cost estimates, timelines, and actual outcomes for use as reference data in improving future estimations.
+User and Role Management Module: Controls system access and permissions for different user roles including System Administrator, Project Manager, Software Engineer, and Client, ensuring data security and operational accountability.
+The system is implemented as a web-based application prototype designed for internal use within Jimstech Innovations Nigeria Limited. The scope does not include integration with external client management or billing systems, though such extensions are recommended for future development once the core system has been validated and adopted within the organization.
+Methodology and Techniques Used in the Study
+This project employs a combination of qualitative research approaches supported by practical system development methodologies to achieve its objectives.
+Observation
+Direct observation of the day-to-day project scoping and proposal preparation activities at Jimstech Innovations Nigeria Limited was carried out. By observing how project managers interact with client briefs, how proposals are assembled, and how cost estimates are calculated, it was possible to identify specific process bottlenecks and documentation gaps that the system needed to address. Observation allowed for the collection of real-world behavioral data that complemented the interview findings.
+Documentation Review
+Existing documentation at Jimstech Innovations Nigeria Limited, including past proposal templates, project cost sheets, client contracts, and internal project records, were reviewed and analyzed. This documentation review provided a baseline understanding of the current state of proposal and estimation practices, including the formats, structures, and data elements involved. It also helped identify which components of the existing process could be automated or enhanced through the proposed system.
+Interviews
+Interviews are a qualitative research method involving structured or semi-structured discussions with stakeholders to obtain detailed insights into their experiences, needs, and challenges. This method provides valuable information that complements findings from documentation and observation.
+In this study, interviews were conducted with the management team, project managers, and software engineers at Jimstech Innovations Nigeria Limited. The discussions focused on the challenges faced during technical proposal preparation and project cost estimation. The interviews revealed that staff often struggle to produce consistent proposals and reliable cost estimates, especially for complex or large-scale projects. They also expressed the need for a faster, more reliable, and AI-assisted system that can support data-driven proposal generation and accurate estimation. These insights were essential in defining system requirements and ensuring that the proposed solution meets real user needs.
+I, AJIBEWA Johnson Irekanmi, a finalist in the Faculty of Information Technology, Department of Software Engineering at the Adventist University of Central Africa (AUCA), conducted this research to design and develop the AI-Powered Technical Proposal and Cost Estimation System, specifically addressing the challenges of manual proposal preparation and inaccurate cost and timeline estimation within software development firms.
+Below are the key questions asked during the interviews, along with summarized responses:
+Question 1: How are technical proposals and cost estimates currently prepared at Jimstech Innovations?
+Answer: Proposals and cost estimates are mainly prepared manually, relying on the experience and personal judgment of project managers and senior engineers. Client briefs are reviewed, team members are consulted informally, and generic templates are used. In many cases, inconsistencies occur because the process is not standardized.
+Question 2: What are the biggest challenges faced during proposal preparation and cost estimation?
+Answer: Respondents identified the absence of a centralized digital system, heavy reliance on manual and experience-based methods, and the lack of a data-driven estimation framework as major challenges affecting proposal quality, pricing accuracy, and project timelines.
+Question 3: How is cost and timeline estimation currently managed for new projects?
+Answer: Management explained that estimates are usually derived from rough calculations based on team rates and assumed timelines, often without systematic reference to historical project data, which frequently leads to budget overruns and missed deadlines.
+Question 4: What features would you expect from an AI-powered proposal and cost estimation system?
+Answer: Respondents suggested features such as automated requirement analysis, structured proposal generation, data-driven cost and timeline estimation, technology stack recommendation, and a searchable repository of past projects, all accessible through a simple web-based interface.
+Question 5: What improvements would make the proposal and estimation process more effective?
+Answer: Participants emphasized the importance of consistent and professional proposal documents, accurate and defensible cost estimates, faster client onboarding, and reliable tools that reduce the time spent on manual drafting.
+Expected Results
+Upon successful implementation and deployment of the system, the following outcomes are anticipated:
+Improved Proposal Preparation Efficiency: The system will significantly reduce the time required to prepare technical proposals by automating requirement analysis, document structuring, and content generation. Project managers will be able to produce professional proposals in a fraction of the time currently required for manual preparation.
+cost and timeline projections, reducing the frequency of budget overruns and deadline misses that affect project profitability and client satisfaction.
+Standardized Proposal Documentation: The system will enforce consistent proposal structures and content standards across all projects, ensuring that every proposal produced by Jimstech Innovations Nigeria Limited meets a high level of professional quality regardless of which team member prepared it. This will strengthen the firm's brand reputation and instill greater confidence in clients reviewing its submissions.
+Enhanced Technology Decision-Making: The technology recommendation module will provide data-driven suggestions for programming languages, frameworks, and architectures, helping development teams make more informed technology choices aligned with project requirements and industry best practices. This will reduce the risk of poor technology selections that increase development complexity or limit system scalability.
+Faster Client Onboarding and Project Initiation: With streamlined proposal generation and cost estimation processes, Jimstech Innovations Nigeria Limited will be able to respond to client inquiries more quickly, shorten the sales cycle, and initiate project execution sooner. This responsiveness will improve the client experience and give the firm a competitive advantage in securing new business opportunities.
+Organizational Learning and Continuous Improvement: The project repository module will accumulate valuable historical data over time, enabling the organization to learn from past projects and continuously refine its estimation models and proposal strategies. As the repository grows, the system's predictive capabilities will improve, creating a self-reinforcing cycle of accuracy and operational excellence that compounds in value as the firm takes on more projects.
+Organization of the Work
+This report is organized into five chapters, each addressing a specific aspect of the research and system development process:
+Chapter One – General Introduction: This chapter provides an overview of the study, including the background, statement of the problem, choice and motivation, objectives, scope, methodology, expected results, and the organization of the report.
+Chapter Two – Analysis of the Current System: This chapter examines in detail the existing manual proposal preparation and cost estimation system currently used at Jimstech Innovations Nigeria Limited. It describes how the existing system operates, highlights its
+limitations, and identifies the challenges that justify the need for a digital and AI-powered solution.
+Chapter Three – Requirements Analysis and Design of the New System: This chapter covers the detailed analysis and design of the proposed system. It includes functional and non-functional requirements, UML diagrams including use case, class, sequence, and activity diagrams, data dictionary, and system architecture design.
+Chapter Four – Implementation of the New System: This chapter describes the practical development and deployment of the system. It presents the technologies and tools used, the system's user interfaces with screenshots, and the software testing approaches applied to validate the system.
+Chapter Five – Conclusion and Recommendations: The final chapter summarizes the research findings, discusses the overall impact of the developed system, and provides recommendations for organizational adoption and future research.
+CHAPTER 2
+ANALYSIS OF THE EXISTING SYSTEM
+Introduction
+The purpose of designing and implementing the AI-Powered Technical Proposal and Cost Estimation System is to replace and enhance the existing manual processes currently in use at Jimstech Innovations Nigeria Limited. To build a more efficient, consistent, and intelligent system, it is essential to first analyze how the current setup operates, understand its structural limitations, and identify the specific areas that require technological intervention.
+This chapter examines the current methods used by Jimstech Innovations Nigeria Limited in preparing technical proposals and estimating project costs. It provides a detailed description of the existing organizational environment, analyzes the current system's strengths and weaknesses, models the current workflow, and identifies the problems that justify the need for a new AI-powered solution. The chapter concludes with a presentation of the proposed solutions and the system requirements that the new system must satisfy.
+Description of the Current System Environment
+Historical Background
+Jimstech Innovations Nigeria Limited is a technology company incorporated under the Companies and Allied Matters Act 2020 in Nigeria. The company is headquartered at 122 Old Otta Road, Ile-Epo, Oke Odo, Lagos, Nigeria. Since its establishment, Jimstech Innovations has been committed to its founding mission of building ideas into reality for clients and stakeholders through technology innovation.
+The company operates across multiple technology domains including software development and digital solutions, educational technology and e-learning, artificial intelligence and data analytics, e-commerce and online marketplaces, and entertainment and media technology. As a registered private company with a nominal share capital of one million Nigerian naira,
+Jimstech Innovations serves both individual and corporate clients, delivering custom software solutions, mobile and web applications, and digital transformation services.
+Over time, as the company has grown and diversified its project portfolio, the limitations of its manual proposal preparation and cost estimation processes have become increasingly apparent, creating operational inefficiencies that this research seeks to address through the development of an intelligent digital system.
+Mission
+The mission of Jimstech Innovations Nigeria Limited is to deliver innovative technology solutions that transform client ideas into functional and impactful digital realities, providing measurable value to businesses, institutions, and individuals through creativity, expertise, and technological excellence.
+Vision
+The vision of Jimstech Innovations Nigeria Limited is to become a leading technology innovation company in Africa, recognized for building transformative digital solutions that drive economic growth, enhance productivity, and improve the quality of life for people and organizations across the continent.
+Description of the Current System
+The current system for managing technical proposal preparation and project cost estimation at Jimstech Innovations Nigeria Limited is primarily manual, template-driven, and heavily reliant on individual expertise and informal communication. This traditional approach covers three core operational areas: requirement gathering, proposal documentation, and cost and timeline estimation.
+Requirement Gathering Process
+Manual Client Brief Collection: When a potential client approaches Jimstech Innovations Nigeria Limited with a project idea, the initial requirement gathering is conducted through unstructured conversations, email exchanges, or informal meetings. There is no standardized
+digital form or system for capturing client requirements, resulting in incomplete and inconsistently documented project briefs.
+No Structured Requirement Classification: Captured requirements are not systematically classified by type, complexity, or priority. Project managers and engineers rely entirely on personal judgment to assess the scope and complexity of a project, leading to variability in scope assessments across different team members.
+Proposal Documentation Process
+Template-Based Manual Drafting: Technical proposals are prepared by manually filling in generic Microsoft Word or Google Docs templates. Each proposal requires the project Manager or lead engineer to write from scratch or adapt to a previous proposal, a process that is time-consuming, inconsistent, and dependent on the quality of the individual author.
+Inconsistent Proposal Quality: Because there is no standardized system for proposal generation, the quality and structure of proposals vary significantly depending on who prepares them. Some proposals may include detailed system architecture descriptions while others omit them entirely; some may contain thorough technology stack justifications while others provide only superficial technology mentions.
+No Automated Content Generation: The current process has no capability for automatically generating proposal sections based on analyzed requirements. All content must be written manually, even for sections that follow predictable patterns such as project overview, scope of work, deliverable, and technology recommendations.
+Cost and Timeline Estimation Process
+Experience-Based Informal Estimation: Cost and timeline estimates are derived primarily from the personal experience of senior engineers and project managers. There is no formal estimation model or structured methodology in use. Estimates are often communicated verbally before being formalized in the proposal document, introducing the risk of inconsistency between the verbal commitment and the written document.
+No Historical Data Reference System: Jimstech Innovations currently has no centralized repository of historical project data that could be used to reference past cost and timeline performance. When estimating a new project, team members may attempt to recall similar past projects from memory, but without structured data access, this recall is imprecise and unreliable.
+No Technology Recommendation Logic: The selection of technology stacks for new projects is done informally, typically defaulting to the technologies most familiar to the available development team rather than systematically evaluating which technologies best fit the project's requirements, scalability needs, and long-term maintainability. This ad hoc approach to technology selection can result in mismatches between the chosen tools and the demands of the project, potentially increasing development effort, limiting system performance, and creating technical debt that becomes costly to address in later stages. The lack of a structured recommendation process also means the firm may overlook emerging technologies.
+Analysis of the Current System
+The current manual system for managing technical proposal preparation and cost estimation at Jimstech Innovations Nigeria Limited faces several operational challenges that limit its effectiveness. Below are the key weaknesses identified during the analysis:
+Lack of Structured Requirement Capture
+No centralized digital system exists for capturing, storing, and retrieving client project requirements in a structured format.
+Requirements are scattered across emails, chat messages, and informal notes, making it difficult to maintain a complete and accurate record of what was agreed with the client.
+Inconsistent Proposal Quality
+Technical proposals vary significantly in structure, depth, and quality depending on the individual team member who prepares them.
+There is no quality assurance mechanism to ensure that all proposals meet minimum standards before being sent to clients.
+Poor Estimation Accuracy
+Cost and timeline estimates are based entirely on individual experience and informal judgment rather than data-driven models.
+The absence of a historical data reference system means that lessons learned from past projects are not systematically incorporated into new estimates.
+Inefficient Use of Expert Time
+Senior engineers and project managers spend significant amounts of time manually preparing proposals and calculations that could be automated.
+This diversion of expert time from development work reduces the firm's overall productivity and increases operational costs.
+No Audit Trail or Version Control
+There is no systematic way to track changes to proposals, record who made specific decisions, or retrieve previous versions of a proposal document.
+This lack of traceability creates accountability gaps and can lead to disputes with clients about what was agreed in the proposal.
+Modeling of the Current System
+Figure 1: Modeling of the Current Manual Proposal Process
+Step 1: Client Sends Informal Project Brief
+As shown at the beginning of the process, the client sends an informal project brief to Jimstech Innovations Nigeria Limited. This brief may arrive without a standardized structure, meaning important details such as scope, budget, timeline, and technical requirements may be incomplete or unclear.
+Step 2: Manager Reviews the Brief Manually
+The manager reviews the client’s brief manually to understand the project request. Since this review depends on human interpretation, there is a risk of missing key requirements or making assumptions without enough supporting information.
+Step 3: Engineer Provides Rough Technical Input
+After the manager reviews the brief, an engineer gives rough technical input. This input helps define the technical approach, but it is not supported by an automated knowledge base or historical proposal data. As a result, the quality and accuracy of the input may vary from one proposal to another.
+Step 4: Proposal Is Drafted Using a Generic Template
+The proposal is then drafted in a generic document template. This shows that the current system does not use an intelligent or customized proposal generation tool. Because the template is general; the proposal may require significant manual editing to fit the client’s specific project needs.
+Step 5: Cost and Timeline Are Estimated from Experience
+The cost and project timeline are estimated based on staff experience rather than automated calculations or stored historical project data. This can lead to estimation errors, inconsistent pricing, and inaccurate delivery timelines.
+Step 6: Proposal Is Sent for Internal Review
+The draft proposal is sent for internal review. At this stage, errors, missing information, unclear scope, or weak technical and financial details may be identified. The diagram highlights this stage as one of the points where the main process weaknesses become visible.
+Step 7: Corrections Are Made Manually
+If issues are found during internal review, corrections are made manually. This increases the time required to complete the proposal and may lead to repeated edits, version control problems, and duplicated manual work.
+Step 8: Final Proposal Is Emailed to the Client
+Once corrections are completed, the final proposal is emailed to the client. However, if the client or internal team later finds that the scope, price, or timeline is unclear, the process enters a rework loop involving repeated calls, edits, and recalculations.
+Problems of the Current System
+The current manual proposal process at Jimstech Innovations Nigeria Limited is slow and highly dependent on individual staff experience. The diagram shows several weaknesses, including slow proposal preparation, inconsistent proposal quality, weak use of historical references, estimation errors, limited accountability, and duplicated manual work. Because the process relies on manual review, generic templates, and experience-based estimation, it creates delays and increases the risk of unclear or inaccurate proposals. The major issues with the existing system can be categorized into the following areas:
+Significant Poor Performance
+Throughput: When multiple clients request proposals simultaneously, the manual system struggles to maintain throughput because each proposal requires dedicated expert time and attention. There is no mechanism for parallelizing the proposal preparation process or reusing components across similar proposals, leading to delays in responding to client inquiries during peak business periods.
+Response Time: The time from receiving a client brief to delivering a completed technical proposal typically ranges from several days to over a week in the current manual system. This extended response time disadvantages Jimstech Innovations Nigeria Limited in competitive situations where clients are evaluating multiple vendors and responsiveness is a key selection criterion.
+Incomplete Information
+Input: The absence of a structured intake form or requirement analysis tool means that the information collected from clients is often incomplete, ambiguous, or inconsistently formatted. Different project managers may capture different levels of detail for similar project types, making it impossible to maintain consistent input quality.
+Output: The proposals produced by the current system vary significantly in quality, structure, and comprehensiveness. Without automated generation or quality templates, the output depends entirely on the skill and attention to detail of the individual preparing the proposal. Cost estimation outputs are particularly variable, with no systematic basis for the figures provided.
+Storage: Past proposals and cost estimates are stored in individual team members' personal computers or shared drives without any organized structure or metadata. This makes it extremely difficult to search for, retrieve, or analyze historical proposal and estimation data for reference purposes.
+Insufficient Economics
+The manual proposal preparation process involves significant labor costs as senior engineers and project managers invest substantial time in activities that could be automated. Additionally, inaccurate cost estimates frequently result in under-pricing of projects, leading to financial losses when actual development costs exceed the quoted price. The cumulative financial impact of these estimation errors can be substantial over a portfolio of projects.
+Lack of Control Access
+The current system offers no access control or authorization mechanisms for the proposal preparation process. Any team member with access to the shared drive or email account can view, modify, or delete proposal documents without restriction or audit trail. This lack of control creates risks of unauthorized changes, data loss, and breach of client confidentiality.
+Poor Executed Service
+Clients of Jimstech Innovations Nigeria Limited experience longer waiting times for proposals than would be acceptable in a fully automated system. Inaccurate cost estimates can also lead to scope creep disputes and project renegotiations that damage client relationships and reduce satisfaction with the firm's services
+Lack of Efficiency
+Project managers and senior engineers spend a disproportionate amount of time on administrative tasks related to proposal preparation rather than on technical work that directly adds value to project delivery. The redundancy of recreating similar proposal sections for every new project, combined with the manual cost calculation process, represents a significant efficiency loss for the organization.
+Proposed Solutions
+To address the identified problems with the current manual system, the following AI-powered digital solutions are proposed through the implementation of the new system:
+AI-Powered Requirement Analysis: Implement a structured digital intake module that guides clients and project managers through a standardized requirement submission process, with AI-assisted analysis to categorize requirements, identify complexity factors, and generate requirement summaries automatically.
+Automated Proposal Generation Engine: Develop an intelligent proposal generation module that uses analyzed requirements to automatically produce structured technical proposal documents, including project overview, recommended system architecture, technology stack, development phases, and deliverable, significantly reducing manual writing effort.
+Data-Driven Cost and Timeline Estimation: Implement AI-supported estimation models prompted on historical project data that produce cost and timeline projections with demonstrated accuracy improvements over expert-based estimation, providing quantified confidence intervals for estimates. These models will systematically account for variables such as project complexity, team size, technology choices, and resource availability, replacing the subjective and often inconsistent judgments that currently drive the firm's pricing decisions.
+System Requirements
+Functional Requirements
+REQ 1:
+User Authentication and Authorization
+The system must provide a secure login mechanism supporting four user roles: System Administrator, Project Manager, Software Engineer, and Sales.
+Each user must be authenticated with a unique username and password with appropriate role-based access permissions.
+REQ 2:
+Requirement Analysis Module
+The system must provide a structured form for capturing client project requirements including project type, industry domain, functional features, non-functional requirements, and integration needs.
+The system must apply AI-assisted analysis to categorize requirements and assess project complexity automatically.
+The system must generate a structured requirement summary document upon completion of the intake process.
+REQ 3:
+Proposal Generation Module
+The system must automatically generate structured technical proposal documents based on analyzed requirements.
+Generated proposals must include sections for project overview, proposed system architecture, technology stack recommendations, development phases, deliverable, and timeline summary.
+Project managers must be able to review, edit, and finalize auto-generated proposals before client submission
+REQ 4:
+Cost Estimation Module
+The system must calculate projected development costs using AI-supported estimation models.
+Cost estimates must be derived from a combination of project complexity scores, resource requirements, team composition, and historical cost data.
+The system must present cost estimates with itemized breakdowns by development phase and resource type.
+REQ 5:
+Timeline Prediction Module
+The system must predict project timelines by analyzing development phases, complexity scores, and historical performance data.
+Timeline outputs must include milestone-based schedules with start and end dates for each development phase.
+REQ 6:
+Technology Recommendation Module
+The system must suggest appropriate programming languages, frameworks, databases, and infrastructure options based on project requirements.
+Recommendations must be accompanied by justifications explaining why each technology was selected.
+REQ 7:
+Project Repository Module
+The system must store all project records including requirements, proposals, cost estimates, timelines, and post-project outcome data.
+The repository must be searchable for project type, industry, technology stack, and date range.
+REQ 8:
+User and Role Management Module
+System administrators must be able to create, modify, and deactivate user accounts.
+The system must enforce role-based access controls, ensuring users can only access features relevant to their assigned roles. Each role within the system, including System Administrator, Project Manager, Software Engineer, and Sales, must be associated with a clearly defined set of permissions that govern which modules, records, and actions are accessible to that user.
+Non-Functional Requirements
+NFR 1: Usability
+The system must provide an intuitive user interface accessible to users with varying technical skill levels.
+All core workflows must be completed within a reasonable number of steps without requiring specialized training.
+NFR 2: Performance and Reliability
+The system must respond to user actions within an acceptable response time under normal load conditions.
+The system must maintain high availability with minimal planned and unplanned downtime.
+NFR 3: Security
+All user passwords must be stored using strong cryptography hashing algorithms.
+The system must enforce HTTPS for all communications and implement protection against common web application vulnerabilities.
+NFR 4: Scalability
+The system architecture must be designed to accommodate growth in the number of users, projects, and data volume without requiring fundamental redesign.
+NFR 5: Maintainability
+The system must be built using modular architecture principles to allow individual components to be updated or extended independently.
+Comprehensive technical documentation must accompany the system to support future maintenance and development.
+NFR6: Backup and Recovery
+The system must perform automatic backups of critical data on a regular schedule.
+The system must be capable of restoring data from backups in the event of system failure or data corruption.
+NFR7: Auditability
+The system must maintain logs of important user activities and system events.
+Audit records must be retained and accessible for review by authorized personnel.
+NFR8: Flexibility
+The system must allow configuration of business rules and settings without     requiring changes to the source code.
+CHAPTER 3
+REQUIREMENTS ANALYSIS AND DESIGN OF THE NEW
+SYSTEM
+Introduction
+This chapter focuses on the comprehensive analysis and design of the AI-Powered Technical Proposal and Cost Estimation System for Jimstech Innovations Nigeria Limited. The chapter bridges the gap between the problems identified in the current system and the technical specifications required to build the new system. It presents the system's architectural design, behavioral models, data structures, and interface specifications using established software engineering tools and notations.
+According to courses such as Software Engineering, Database Management Systems (DBMS), and System Analysis and Design (SAD), system development generally includes two major components derived from the Software Development Life Cycle (SDLC): System Analysis and System Design (Pressman and Maxim, 2014; Kendall and Kendall, 2019). These two phases are sequential and interdependent, with the outputs of the analysis phase directly informing the decisions made during the design phase.
+System analysis is the process of gathering and interpreting data, identifying problems, and decomposing the system into manageable components to understand what the new system must do. In this project, system analysis was used to examine the existing manual proposal and estimation processes at Jimstech Innovations Nigeria Limited, providing the foundation for defining the new system's objectives and functional specifications. The analysis revealed key inefficiencies in the current workflow and established a clear set of requirements that the new system must satisfy in order to deliver meaningful operational improvements.
+System design is the phase where the system's architecture, components, modules, and data flows are planned and specified. It defines how the system will fulfill the objectives identified during the analysis phase, including the design of user interfaces, database structure, security mechanisms, and communication between components. In this project, system design involves creating detailed UML models and diagrams, including case diagrams, activity diagrams, sequence diagrams, and an entity-relationship diagram, that collectively serve as the technical blueprint for implementation and provide a reference for system validation and future maintenance.
+Analysis and Design Methodology
+This project adopts an analysis and design methodology to examine the current manual proposal preparation and cost estimation process, identify its weaknesses, and define the functional and non-functional requirements for the proposed AI-based proposal generation system. The methodology provides a structured approach for understanding how the existing system operates, the challenges faced by staff members, and the improvements required to increase efficiency, accuracy, and consistency in proposal development.
+Through system analysis, data is gathered from the current operational environment to evaluate problems such as inefficient requirement handling, delays in proposal preparation, dependence on individual experience, and inconsistencies in cost estimation. The findings from the analysis stage help in determining user needs, system objectives, and key features required in the new system, ensuring that the solution developed is directly responsive to the practical realities of the organization rather than a generic or theoretical construct.
+The design phase focuses on transforming the identified requirements into a well-structured system model that serves as the technical blueprint for implementation. This includes the creation of process models, database structures, user interface designs, workflow diagrams, and system architecture needed to support the full range of the system's intended functionality. The methodology also defines how artificial intelligence techniques will be integrated into the system to automate proposal generation, improve requirement analysis, and assist in producing more accurate cost and timeline estimations. Each design artefact produced during this phase was reviewed against the requirements of specification to ensure completeness, consistency, and alignment with the system's stated objectives.
+Overall, the analysis and design methodology ensures that the proposed system is carefully planned, user-oriented, and capable of addressing the limitations of the current manual process while supporting future scalability and system improvement. By grounding every design decision in evidence gathered during the analysis phase, the methodology reduces the risk of developing a system that fails to meet user expectations or organizational needs. Furthermore, the methodology promotes system reliability, maintainability, security, and usability, ensuring that the final solution enhances operational efficiency, improves data management, reduces human errors, and provides a solid foundation for future enhancements and technological advancements as the firm continues to grow and evolve.
+Object Oriented Methodology
+The object-oriented methodology is used in this project to model the proposed system as a collection of interacting objects that represent real-world entities involved in the proposal preparation and cost estimation process. These objects include users, proposals, clients, templates, project requirements, cost estimates, and AI services, each with specific attributes, functions, and responsibilities within the system.
+This methodology focuses on organizing the system into independent but connected components, allowing each object to perform specific tasks while interacting with others to achieve overall system objectives. By using an object-oriented approach, the system becomes more modular, making it easier to design, develop, test, and maintain over time.
+One major advantage of this methodology is re-usability, where existing classes and components can be reused in different parts of the system, reducing development time and effort. It also supports scalability and flexibility, making it easier to add new features or improve existing functionalities in the future without affecting the entire system structure.
+In addition, the object-oriented methodology improves system documentation and understanding through the use of Unified Modeling Language (UML) diagrams such as use case diagrams, which describe user interactions with the system; class diagrams, which define system objects and their relationships; and sequence diagrams, which illustrate how different objects interact during system operations. These design tools provide a clear representation of system behavior and architecture, ensuring that the proposed AI-based proposal generation system is well-structured, efficient, and easy to maintain.
+Furthermore, the object-oriented approach promotes reusability and modularity by organizing the system into independent classes and components. This structure simplifies system development, testing, and future modifications, as changes made to one component have minimal impact on others. As a result, the proposed AI-based proposal generation system can be enhanced more efficiently over time.
+Unified Modeling Language
+Introduction to UML
+The Unified Modeling Language (UML) is a widely used modeling language in software
+engineering that helps developers design and document information systems. It provides a
+clear way to visualize how a system is structured, how its components interact, and how users communicate with the system. UML is therefore useful in representing the design.
+UML was developed in the 1990s by James Rumbaugh, Grady Booch, and Ivar Jacobson,
+and later standardized by the Object Management Group in 1997. Since then, UML has
+become an international standard used to model different aspects of software systems, from
+simple applications for large information systems.
+In this project, UML is used to represent important elements of the system such as the system actors, system processes, and interactions between users and the system. Through diagrams such as case diagrams, activity diagrams, and class diagrams.
+Design of the New System
+System design provides the structure for how the proposed AI Proposal Generation System will operate. It defines the system architecture, modules, user interfaces, workflows, and data components required to support the digital creation, review, and management of business proposals at Jimstech Innovations Nigeria Limited. The goal of the design is to reduce manual effort, improve proposal quality, and make the proposal preparation process faster more consistently, and more reliable across all project types and team members. The design also ensures that the system is scalable enough to accommodate the firm's growing project volume and adaptable enough to support future enhancements without requiring a complete rebuild.
+The proposed system focuses on developing an intelligent digital platform that allows users to enter client requirements, generate proposal content, estimate project cost and timeline, and manage proposal reviews within one system. It will also support key functions such as proposal template management, AI-assisted content generation, internal approval, proposal history, and final document export in professional formats suitable for client delivery. Each of these functions has been designed in direct response to the inefficiencies identified during the system analysis phase, ensuring that the platform addresses real operational gaps rather than introducing unnecessary complexity. The integration of artificial intelligence into the core proposal and estimation workflows distinguishes this system from conventional document management tools and positions it as a strategic asset for the organization.
+The following sections describe the system requirements, use cases, UML diagrams, and system models that guide the development of the new system. These models show how users interact with the platform, how proposal data is processed, and how the AI component supports faster and more accurate proposal creation through automated content generation and data-driven estimation.
+Use Case Diagram
+Introduction to Use Case Diagram
+A use case diagram is a fundamental component of UML used to represent the functional requirements of a system visually. It illustrates how different types of users interact with the system through various use cases, providing a high-level overview of system functionality and user interactions. For the AI-Powered Technical Proposal and Cost Estimation System, the use of case diagram identifies and models the core interactions between system users including Software Engineers, Project Managers, System Administrators, and Sales.
+Use case diagrams are important during the system analysis and design phase because they help identify user requirements clearly and ensure that the proposed system addresses the needs of all intended users. They also improve communication between technical and non-technical stakeholders by presenting system behavior in an easy-to-understand graphical format. Through this approach, system functionalities can be analyzed, organized, and documented effectively before implementation begins.
+For the proposed AI-Powered Technical Proposal and Cost Estimation System, the use case diagram is used to identify and model the core interactions between system users including Software Engineers, Project Managers, System Administrators, and Sales. Each actor interacts with the system differently depending on their responsibilities and level of access. For example, project managers may create and review proposals, software engineers may provide technical specifications, administrators may manage user accounts and system settings, while sales may submit project requirements and review generated proposal
+Use case tools description
+Actor
+Figure 2: Actor Name
+An actor is a person, organization, or external system that interacts with a system. It represents a specific role played by an external entity, such as a customer, employee, or another software system. In a Use Case Diagram, actors initiate use cases and receive the outcomes of those interactions. Identifying actors is important because it helps define system requirements and understand how users and external systems will interact with the system.
+Use Case
+Figure 3: Use case
+A use case is a fancy term for a specific task or function that your system can perform. It describes a sequence of actions that produce a meaningful result for an actor. Think of it as a goal that a user wants to achieve. Basically, a Use Case is meant to represent a functionality the system provides.
+Association
+Figure 4: Association
+An association is the link that connects an actor to a use case. Simply this line shows that the actor participates in that particular function. For instance, the association line between a "Customer" actor and the "Place a 36 Order" use case indicates that the customer is the one who performs that action. It's a crucial part of the diagram because it visually represents the interactions and relationships between external entities and your system's functionalities.
+System Boundary
+Figure 5: System Boundary
+A system boundary defines the scope of a project by separating system functions from external actors. In a use case diagram, it is shown as a box enclosing all system use cases, clarifying what the system includes and excludes.
+<<include>>
+Figure 6: Include
+An include relationship in a use case diagram shows that a base use case incorporates the functionality of another use case.
+Figure : Use Case Diagram
+Use Case Description for Register User Account
+This use case allows a user to register a new account within the AI-Powered Technical Proposal and Cost Estimation System. The registration process is the entry point through which new system users gain access to the platform, and it ensures that every individual interacting with the system is formally identified, assigned an appropriate role, and granted access permissions consistent with their organizational responsibilities. By requiring user registration before any system of functionality is accessible, the platform maintains a controlled and accountable user base that supports data security and operational governance.
+Upon accessing the user management module, the administrator provides the required details for the new user, including full name, email address, assigned role, and initial login credentials.
+Table 1: Use Case Description for Register User Account
+Use Case Description for Login into System
+This use case allows a registered user to log in to the AI-Powered Technical Proposal and Cost Estimation System by providing valid credentials that authenticate their identity and grant them access to the features and data associated with their assigned role. The login process serves as the primary security gateway of the system, ensuring that only authorized individuals can interact with sensitive proposal documents, cost records, and project data stored within the platform. By enforcing authentication at the point of entry, the system protects the organization's confidential information and maintains a clear record of who accessed the system and when.
+The primary actor in this use case is any registered system user, including the System Administrator, Project Manager, Software Engineer, or Sales. The use case is initiated when the user navigates to the system's login page and enters their registered email address and password into the provided input fields. The system retrieves the corresponding user's record from the database and validates the submitted credentials against the stored encrypted password.
+Table 2: Use Case Description for Login into System
+Use Case Description for Submit Project Requirements
+This use case allows an authorized user to generate a structured technical proposal document automatically within the AI-Powered Technical Proposal and Cost Estimation System. The automated generation of technical proposals is the central function of the system and represents the most significant improvement over the firm's current manual drafting process. By transforming analyzed project requirements into a comprehensive, professionally formatted proposal document with minimal human intervention, the system enables Jimstech Innovations Nigeria Limited to respond to client opportunities more quickly, more consistently, and with a higher standard of documentation quality than is achievable through manual effort alone.
+Table 3: Use Case Description for Submit Project Requirements
+Use Case Description for Analyze Project Requirements
+This use case allows the system to automatically process and analyze submitted project requirements within the AI-Powered Technical Proposal and Cost Estimation System. Requirement analysis is a pivotal intermediate step in the system's workflow, sitting between the initial submission of client requirements and the generation of proposals, cost estimates, and technology recommendations. The quality and accuracy of every downstream output produced by the system is directly dependent on how thoroughly and correctly the submitted requirements are analyzed at this stage. By automating this process through AI-assisted techniques, the system ensures that requirement interpretation is consistent, objective, and free from the individual biases that characterize manual analysis.
+Table 4: Use Case Description for Analyze Project Requirements
+Use Case Description for Generate Project Proposal
+This use case allows an authorized user to submit client project requirements through a structured digital interface within the AI-Powered Technical Proposal and Cost Estimation System. The submission of project requirements is the foundational step that initiates the entire proposal and estimation workflow, as all subsequent system activities, including proposal generation, cost estimation, timeline prediction, and technology recommendation, are directly derived from the information captured at this stage. Ensuring that requirements are submitted in a complete, structured, and consistent manner is therefore critical to the accuracy and quality of every output the system produces.
+The primary actors in this use case are the Project Manager and the Software Engineer, both of whom may be responsible for capturing and entering client requirements into the system following initial client engagement.
+Table 5: Use Case Description for Generate Project Proposal
+Use Case Description for Estimate Project Cost
+This use case allows the system to automatically calculate and present a projected cost estimate for a software development project within the AI-Powered Technical Proposal and Cost Estimation System. Accurate cost estimation is one of the most critical and challenging aspects of software project planning, as it directly influences pricing decisions, client expectations, contract agreements, and ultimately the financial performance of the firm. By automating this process through AI-supported estimation models, the system replaces the subjective and inconsistent manual approaches currently in use at Jimstech Innovations Nigeria Limited with a data-driven methodology that delivers more reliable, defensible, and repeatable results.
+Table 6: Use Case Description for Estimate Project Cost
+Use Case Description for Predict Project Timeline
+This use case allows the system to automatically generate a projected timeline for a software development project within the AI-Powered Technical Proposal and Cost Estimation System. Accurate timeline prediction is a critical component of the proposal and planning process, as it defines the delivery commitments made to clients, informs resource allocation decisions, and establishes the milestone framework against which project progress will subsequently be measured. By automating timeline prediction through AI-supported models' provider, the system replaces the informal and often optimistic duration estimates that currently characterize the firm's manual planning process with structured, evidence-based projections that reflect the true complexity and scope of each engagement.
+Table 7: Use Case Description for Predict Project Timeline
+Use Case Description for Recommend Project Technologies
+This use case allows the system to automatically suggest appropriate technologies for a software development project within the AI-Powered Technical Proposal and Cost Estimation System. Technology selection is one of the most consequential decisions made during the early stages of a software project, as the chosen programming languages, frameworks, databases, and deployment tools have far-reaching implications for system performance, scalability, maintainability, development speed, and long-term cost of ownership.
+Table 8: Use Case Description for Recommend Project Technologies
+Use Case Description for Manage Project Repository
+This use case allows authorized users to store, organize, search, and retrieve historical project records within the centralized project repository of the AI-Powered Technical Proposal and Cost Estimation System. The project repository serves as the institutional memory of the system and the organization, accumulating structured records of past projects, proposals, cost estimates, timeline projections, technology selections, and actual project outcomes over time. As the repository grows, it becomes an increasingly valuable resource that strengthens the accuracy of the system's AI-supported estimation and recommendation modules, supports organizational learning, and provides management with a comprehensive reference base for strategic planning and performance benchmarking.
+The primary actors in this use case are the Project Manager and the System Administrator, both of whom are authorized to interact with the project repository and Software Engineer within the boundaries of their respective access permissions.
+Table 9: Use Case Description for Manage Project Repository
+Use Case Description for Generate Reports and Analytics
+This use case allows authorized users to generate structured reports and access analytical insights derived from project, proposal, and estimation data stored within the AI-Powered Technical Proposal and Cost Estimation System. The reporting and analytics capability transform the raw operational data accumulated by the system into meaningful, actionable information that supports management decision-making, performance monitoring, and continuous improvement of the firm's proposal and estimation processes. By providing visibility into key metrics and trends across projects, proposals, and cost outcomes, this use case elevates the system beyond a transactional tool and positions it as a strategic resource for organizational intelligence and planning.
+The primary actors in this use case are the System Administrator, Sales, and the Project Manager, which are authorized to generate reports within the scope of their respective access permissions.
+Table 9: Use Case Description for Generate Reports and Analytics
+Use Case Description for Manage Templates and Integrations
+This use case allows authorized users to create, configure, update, and manage the proposal templates and system integrations that underpin the automated document generation capabilities of the AI-Powered Technical Proposal and Cost Estimation System. Templates and integrations are foundational infrastructure components of the system, as they define the structural and content standards applied to every proposal generated by the platform and determine how the system connects with external tools and data sources to enrich its outputs.
+The primary actors in this use case are the System Administrator and the Project Manager, with the System Administrator holding full permissions over both template management and integration configuration, while the Project Manager may be authorized to create and modify proposal templates within defined boundaries.
+Table 10: Use Case Description for Manage Templates and Integrations
+Use Case Description for Perform Security Audit
+This use case allows the System Administrator to conduct structured security audits within the AI-Powered Technical Proposal and Cost Estimation System, reviewing system access logs, user activity records, and security event histories to identify potential vulnerabilities, unauthorized access attempts, and compliance gaps. Security auditing is a critical governance function that ensures the platform operates within defined security boundaries and that the sensitive proposal documents, financial estimates, and client data stored within the system are consistently protected against unauthorized access, misuse, or data breaches. By providing a dedicated security audit capability within the system, the organization is equipped to proactively monitor and respond to security risks rather than discovering them only after damage has occurred.
+Table 11: Use Case Description for Perform Security Audit
+Use Case Description for Manage User Accounts
+This use case allows the System Administrator to create, modify, and deactivate user accounts within the AI-Powered Technical Proposal and Cost Estimation System. Effective user account management is fundamental to maintaining the integrity, security, and operational continuity of the platform, as it ensures that the right individuals always have access to the right features and data. By centralizing account management within a dedicated administrative module, the system provides the organization with full visibility and control over its user base as staff responsibilities evolve, new team members join the firm, and departing employees require timely removal from the platform.
+The primary actor in this use case is the System Administrator, who is the only role authorized to perform account management operations within the platform.
+Table 12: Use Case Description for Manage User Accounts
+Class Diagram
+Introduction to Class Diagram
+A Class Diagram is a type of UML diagram that shows the structure of a system by
+representing its classes and the relationships between them. It provides a static view of the system and helps in understanding how different parts of the system are organized.
+Class diagrams describe the attributes (data), methods (functions), and relationship the
+classes used in the system. They are important in object-oriented system design because they help developers model real-world entities within the system.
+The class diagram models the main entities that support the implemented workflow. The Project entity is central because proposals, requirements, cost estimations, timeline predictions, and technology recommendations are linked to a project record.
+The elements of class diagram
+Class
+A class is represented with a bold, centered name in the top compartment, a list of attributes in the middle, and operations in the bottom. It symbolizes a person, place, or object the system needs to track. General operations common to all classes are not explicitly shown.
+Figure 8: Class Name
+Attribute
+An attribute represents the properties defining an object's state. Derived attributes are indicated by a slash (/) before the attribute name.
+Operation
+Represents actions or functions a class can perform.
+Can be categorized as a constructor, query, or update operation.
+Includes parentheses, which may contain parameters required for execution.
+Association
+Defines a relationship between two or more classes or a class and itself.
+Labeled with a verb phrase or role name to describe the relationship.
+May include multiplicity symbols indicating the range of instances involved.
+Figure 9: Association
+Generalization
+Illustrates an "is-a-kind-of" relationship between classes.
+Figure 10: Generalization
+Aggregation
+Depicts a logical "part-of" relationship between classes.
+A specialized form of association.
+Figure 11: Aggregation
+Composition
+Represents a physical "part-of" relationship between classes.
+A stricter form of association.
+Figure 12: Composition
+Schema of Class Diagram
+Figure 13: Class Diagram for AI Proposal System
+Sequence Diagrams
+A sequence diagram depicts the message flow and interactions between objects within the system to accomplish a specific use case. It visually represents the sequence of messages exchanged and the order in which objects perform actions to fulfil a user's request.
+Sequence diagrams offer valuable insights into the system's internal workings:
+Understanding Object Interactions: They illustrate how different objects collaborate to achieve a specific functionality.
+Identifying Potential Issues: By visualizing the message flow, sequence diagrams can help identify potential bottlenecks or communication breakdowns within the system.
+Documenting System Behavior: They serve as detailed documentation of the system's behavior for a use case, aiding in development, testing, and maintenance.
+Elements of a Sequence Diagram
+Table 13: Elements of a Sequence Diagram
+Sign Up Sequence Diagram
+The sign-up sequence diagram illustrates the interactions between the user and the system during account creation. The sequence begins when a user navigates to the registration page. The system displays the registration form, which the user fills with personal details, role information, and password. Upon submission, the system validates the input and checks for duplicate accounts. If validation passes, the system creates the user's record in the database and redirects the user to the login page with a success notification. If validation fails, the system returns an error message, identifying the problematic fields for correction.
+Figure 14: Sign Up Sequence Diagram
+Login Sequence Diagram
+The login sequence diagram illustrates the authentication process for existing users. The sequence begins when a user submits login credentials including email and password through the login interface. The system forwards the credentials to the authentication module, which queries the user database for a matching record. If the credentials are valid and the account is active, the system grants access and redirects the user to their role-appropriate dashboard. If credentials are invalid, the system returns an error message prompting the user to retry. This interaction ensures secure access control, allowing only authorized users to proceed with the system's functionalities such as submitting requirements, generating proposals, requesting cost estimates, or managing the repository.
+Figure 15: Sign In Sequence Diagram
+Submit Project Requirements Sequence Diagram
+The submit project requirements sequence diagram illustrates how a project manager or software engineer interacts with the system to capture and submit client project requirements for AI analysis. The sequence begins when the authorized user opens the requirement submission form. The user fills in structured fields including project type, industry domain, required features, integration needs, and constraints. Upon submission, the system validates the input, stores the requirement data in the database, and triggers the AI analysis engine. The analysis engine processes the requirements, applies NLP-based feature extraction, generates complexity scores, and produces a structured requirement summary. A confirmation message and the analysis summary are returned to the user for review.
+Figure 16: Submit Project Requirements Sequence Diagram
+Generate Proposal Sequence Diagram
+The generating proposal sequence diagram shows how the AI proposal generation engine is invoked by a project manager to produce a structured technical proposal document. After selecting a set of analyzed requirements, the project manager initiates proposal generation through the system interface. The system sends the requirements and analysis data to the proposal generation engine, which produces draft sections including project overview, architecture recommendations, technology stack, development phases, and deliverables. The draft is stored in the database and presented to the project manager for review, editing, and finalization before client submission. All proposal versions are retained in the system for audit purposes.
+Once the necessary revisions have been completed, the finalized proposal can be approved and prepared for client submission. The system saves all modifications and maintains a complete version of history of the proposal, ensuring traceability and accountability throughout the proposal lifecycle. This version control mechanism enables users to retrieve previous versions, compare changes, and maintain an audit trail for quality assurance and compliance purposes. The sequence diagram therefore demonstrates how the proposed AI-based proposal generation system automates.
+Figure 17: Generate Proposal Sequence Diagram
+Cost Estimation Sequence Diagram
+The cost estimation sequence diagram illustrates the process of generating a data-driven cost estimate for a software development project. The project manager requests cost estimation for a project that has completed requirement analysis. The system retrieves the project's complexity scores and passes them to the AI estimation model along with current team composition data and relevant historical project records from the repository. The estimation model computes projected costs by development phase and resource type, produces an itemized cost breakdown report, and saves it to the database. The report is then displayed to the project manager for review and possible adjustment of estimation parameters.
+The sequence begins when the Project Manager accesses the system and selects a project that has successfully completed the requirements analysis phase. After reviewing the project details, the Project Manager initiates a cost estimation request through the system interface. The system first validates the project's information to ensure that all necessary requirements, complexity assessments, and project specifications are available for estimation. Once the validation process is complete, the system retrieves the project's complexity scores, including factors such as functional complexity, technical complexity, integration requirements, security considerations, and expected development effort.
+Figure 18: Cost Estimation Sequence Diagram
+Timeline Prediction Sequence Diagram
+The timeline prediction sequence diagram shows how the system generates milestone-based project schedules for software development projects. Following requirement analysis and cost estimation, the project manager requests timeline prediction through the system interface. The system retrieves the project's complexity scores, team capacity data, and historical timeline records from similar past projects in the repository. The timeline prediction module processes this data and generates a phased project schedule with estimated start dates, end dates, and key milestones for each development phase. The timeline report is saved to the project record and displayed to all authorized users.
+The sequence begins when the Project Manager accesses the system interface and initiates a timeline prediction request for a selected project. At this stage, the system verifies that all prerequisite project data has been completed, including validated requirements, cost estimates, and assigned team information. Once confirmation is successful, the system proceeds to gather all necessary inputs required for schedule generation.
+The system retrieves the project’s complexity scores, which reflect the level of effort required across different dimensions such as functional requirements.
+Figure 19: Timeline Prediction Sequence Diagram
+Send Notification Sequence Diagram
+The send notification sequence diagram illustrates how the system administrator or project manager sends system notifications to relevant users regarding proposal updates, cost estimate approvals, timeline changes, or other project-related communications. The actor opens the notification module and composes a message including subject, content, notification type, and recipient selection. The system validates the notification data and saves it to the notifications database before dispatching it to the selected users through the appropriate communication channel. Recipients receive the notification on their respective dashboards or via email depending on their notification preferences. All notifications are logged with timestamps for audit purposes.
+After the notification details have been entered, the system performs a validation process to ensure that all required fields are correctly completed and that the selected recipients are valid and authorized users within the system. This validation step also checks for data consistency, message formatting, and compliance with system rules regarding notification types and delivery permissions. If any errors or missing information are detected, the system prompts the user to correct the input before proceeding.
+Figure 20: Send Notification Sequence Diagram
+Activity Diagram
+An activity diagram represents the behavior in a business process or system of workflow. It depicts the step-by-step flow of activities, decision points, parallel actions, and end states within a system process. Activity diagrams are used in this project to visualize the complete workflow of the AI-Powered Technical Proposal and Cost Estimation System, covering the entire proposal lifecycle from initial requirement submission through AI analysis, cost estimation, timeline prediction, and final proposal delivery to the client.
+The activity diagram serves as a comprehensive operational guide for understanding the system's complete process flow.
+Figure 21: Activity Diagram
+Database Diagram
+The database schema diagram for the AI-Powered Technical Proposal and Cost Estimation System illustrates the structured organization and relationships among the system's key data entities. It includes tables for users, projects, proposals, cost estimations, technology recommendations, timelines, and notifications. These tables are interconnected through foreign key relationships to support the seamless workflow of requirement submission, AI analysis, proposal generation, and estimation reporting.
+This schema provides a clear, normalized, and scalable foundation for managing all data in the system. It ensures data integrity through consistent foreign key constraints, supports efficient querying for AI model operations and historical data retrieval, maintains a complete audit trail of all proposal and estimation activities, and securely stores sensitive business and client information in compliance with best practices for data management.
+Elements of a Database Diagram
+Table 14: Elements of a Database Diagram
+Figure 22: Database Diagram
+Data Dictionary
+The Data Dictionary defines the data structures used in the AI-Powered Technical Proposal and Cost Estimation System, outlining table names, field names, data types, constraints, and descriptions for each entity in the relational database schema.
+Table 15: User Profiles Tables
+Table 16: Projects Table
+Table 17: Proposal Table
+Table 18: Cost Estimation Table
+Table 19: Technology Recommendations Table
+Table 20: Notifications Table
+System Architectural Design
+System architecture design is a critical phase in the development of the AI-Powered Technical Proposal and Cost Estimation System, as it defines the structural framework and outlines how the different components of the system interact to fulfill both functional and non-functional requirements. It involves planning the major modules, system interfaces, user access levels, AI processing pipelines, and the deployment environment to ensure the platform is scalable, secure, and maintainable.
+The architecture consists of well-defined layers that separate responsibilities and promote modularity:
+Presentation Layer: The single-page application built with React 18 and TypeScript, bundled by Vite, styled with Tailwind CSS v4, and composed of Radix UI and MUI components. Role-specific views are rendered for Software Engineers, Project Managers, Sales, and System Administrators.
+Application Logic Layer: The business logic runs in the browser (React hooks/services) and coordinates requirement submission, proposal generation, cost estimation, timeline prediction, and technology recommendation; role-based access is enforced in the UI.
+AI Assisted Logic Layer: calls the NVIDIA LLM API for analysis and generation, with deterministic local fallbacks to determine the requirement analysis engine, proposal generation module, and technology recommendation engine. This layer interfaces with the project repository to prompt historical data for model inference.
+Data and Authentication Layer: Supabase provides managed PostgreSQL, authentication (email/password with JWT sessions), and Row-Level Security (RLS) policies. The SPA talks to the database through Supabase PostgREST; database triggers maintain the audit log and notifications.
+API and Communication Layer: Facilitates communication between the frontend interface and backend services using RESTful APIs, enabling modular and scalable integration of all system components and supporting future integration with external systems.
+Key architectural considerations include scalability to accommodate growing data volumes and user loads, security through role-based access control and encrypted communications, maintainability through modular design enabling independent component updates, and reliability through appropriate error handling and data backup mechanisms.
+Figure 23: System Architecture Diagram
+The system architecture diagram above illustrates the complete technical structure of the AI-Powered Technical Proposal and Cost Estimation System. System users interact through the web-based presentation layer, which communicates with the application layer via RESTful APIs. The application layer coordinates with the AI processing layer for intelligent analysis and generation tasks, and all data persisted in the Supabase PostgreSQL database layer. Role-based access control is enforced at the application layer, ensuring that each user role accesses only the appropriate system features and data.
+At the highest level, system users interact with the application through a web-based presentation layer, which provides a user-friendly interface for accessing system functionalities such as requirement management, proposal generation, cost estimation, timeline prediction, and notification handling. This presentation layer is responsible for capturing user inputs, displaying processed results, and ensuring smooth interaction between users and the underlying system components.
+The presentation layer communicates with the application layer through RESTful APIs, which act as a bridge for data exchange and request handling. These APIs are responsible for processing incoming requests, validating input data, enforcing business rules, and coordinating the flow of information between different system modules. The use of RESTful services ensures that the system remains flexible, lightweight, and easily integrable with other external systems if required in the future.
+After the notification details have been entered, the system performs a validation process to ensure that all required fields are correctly completed and that the selected recipients are valid and authorized for users within the system. This validation step also checks for data consistency, message formatting, and compliance with system rules regarding notification types and delivery permissions. If any errors or missing information are detected, the system prompts the user to correct the input before proceeding.
+Once validation is successfully completed, the system stores the notification information in the notifications database.
+CHAPTER 4
+IMPLEMENTATION OF THE NEW SYSTEM
+Introduction
+The implementation was guided by the Incremental Software Development Model, with each module developed, tested, and refined in successive iterations before integration into the complete system. This approach enabled early identification and resolution of development issues and ensured that each functional component met its specified requirements before proceeding to the next development increment.
+Technologies and Tools Used
+Presentation of the New System
+This section presents the implemented AI-Powered Technical Proposal and Cost Estimation System through annotated screenshots and detailed descriptions of its key user interfaces. Each screen represents a functional component of the system, demonstrating how the requirements identified in earlier chapters have been realized in the working web application.
+Sign Up / Registration Page
+The registration page is the entry point for new users joining the system. It presents a clean, structured form collecting the user's full name, email address, password, confirm password, and role selection from a dropdown menu. The role selection field is critical as it determines the access level and dashboard view the user will receive upon login. The form features real-time validation feedback using JavaScript, highlighting incomplete or incorrectly formatted fields before submission. A password strength indicator guides users in creating secure credentials. Upon successful submission, the system creates the user account, sends a confirmation notification, and redirects to the login page.
+Figure 24: Signup Form
+Login Page
+The login page provides secure and straightforward access to the system for registered users. The interface presents a clean form with email address and password fields, a remember me option for convenience, and a password recovery link for users who have forgotten their credentials. Upon entering valid credentials, the system authenticates the user, retrieves their role profile, and redirects them to their role-customized dashboard. Invalid login attempts are clearly communicated with descriptive error messages, and the system enforces account security policies to protect against unauthorized access attempts.
+Figure 25: Login Form
+Role-Based Dashboard
+Each user is presented with a customized dashboard that reflects their role and responsibilities within the system. The dashboard provides a personalized overview of relevant system activity and quick access to the most frequently used features:
+Project Managers can: Access the complete proposal lifecycle from requirement submission through proposal finalization, view AI-generated cost estimation reports and timeline predictions, manage client communications, and access the project repository for reference.
+Software Engineers can: View assigned project requirements and AI analysis results, review technology recommendations for input and validation, contribute technical details to the estimation process, and access project timeline information.
+System Administrators can: Manage all user accounts and role assignments, oversee the complete project repository, configure AI model parameters and the technology knowledge base, monitor system activity logs, and generate administrative reports on system usage.
+Clients can: Submit initial project briefs through a simplified requirement intake form, view and download proposal documents shared with them, review cost summaries and timeline overviews, and submit structured feedback on proposals.
+Figure 26: Role-Based Dashboard
+Requirement Analysis Module
+The requirement analysis module provides a comprehensive structured form for capturing client project requirements. The form is organized into clearly labeled sections covering project identification details, industry and business domain classification, functional requirements description with feature listing capabilities, non-functional requirements such as performance and security needs, third-party integration requirements, estimated budget range, and target project timeline. A guided input experience helps users provide complete and structured information. Upon submission, the AI analysis engine processes the requirement text using NLP-based feature extraction, computes a complexity score on a standardized scale, categorizes requirements by type and priority level, identifies potential risks and ambiguities, and generates a structured requirement analysis report. The report is displayed to the submitting user and saved to the project record.
+Figure 27: Requirement Analysis Module
+Proposal Generation Module
+The proposal generation module presents the project manager with the complete AI-generated technical proposal draft in a structured document view. The generated proposal contains all standard sections expected in a professional software development proposal: Executive Summary, Company Introduction, Project Understanding and Problem Statement, Proposed Solution Overview, System Architecture and Technical Approach, Technology Stack with Justifications, System Modules and Feature Descriptions, Development Methodology and Process, Project Timeline Summary, Resource and Team Structure, Cost Overview, Quality Assurance Approach, Terms and Conditions, and Contact Information. Each section is fully editable within the interface, allowing the project manager to review, refine, and supplement the AI-generated content before finalizing. The finalized proposal can be exported as a professionally formatted PDF document ready for client submission. Version history is maintained automatically in the system for each proposal revision, supporting traceability and audit requirements.
+Figure 28: Proposal Generation Module
+Cost Estimation Report Page
+The cost estimation report page presents the AI-generated cost analysis for a software development project in a detailed, visually organized format designed for easy review and client communication. The report includes a prominent total project cost summary, a phase-by-phase cost breakdown showing estimated labor costs, infrastructure and hosting costs, software licensing costs, testing and quality assurance costs, and a contingency allocation for each development phase. Resource allocation visualization shows the distribution of work across different team roles and the associated cost contributions. Comparative reference data from similar past projects in the repository is displayed alongside the current estimate to provide context and validate the projections. The project manager can review the estimate, adjust input parameters such as team composition or complexity assumptions to explore different cost scenarios, and export the complete report as a PDF for inclusion in the client proposal package. All generated cost estimate versions are stored in the project record with timestamps for historical reference and audit purposes.
+Figure 29: Cost Estimation Report Page
+Admin / System Management Page
+The administration page is designed exclusively for system administrators and provides comprehensive oversight and management capabilities for the entire platform. From this centralized interface, administrators can manage all user accounts including creating new accounts, editing existing user details, reassigning roles, and activating or deactivating accounts as required by organizational changes. The project repository overview provides a complete view of all projects, proposals, and estimation records across all users and teams. The system activity log presents a detailed, filterable audit trail of all significant user actions and system events. Administrators can configure AI model parameters including estimation model weights and confidence thresholds, manage and update the technology knowledge base used by the recommendation engine, generate comprehensive usage and activity reports for organizational reporting, and perform database maintenance and backup operations. The administration interface is secured with the highest privilege level in the role-based access control system.
+In addition to user management, the administration page provides a complete project repository overview, offering visibility into all projects, proposals, cost estimations, and timeline predictions generated across the system. Administrators can review project statuses, track progress across different teams, and access historical records for auditing, performance evaluation, and decision-making purposes. This centralized visibility enhances transparency and ensures that all organizational activities are properly monitored and recorded.
+Figure 30: Admin / System Management Page
+Software Testing
+Software testing is a critical component of the system development process that verifies whether the implemented application meets its specified requirements, performs as expected under various conditions, and satisfies the needs of the users and organizational stakeholders.
+For the AI-Powered Technical Proposal and Cost Estimation System, the following testing methodologies were systematically applied throughout the development process:
+Unit Testing
+Unit testing involved the systematic evaluation of individual modules and functions of the system in isolation to verify their correctness and reliability before integration into the complete system:
+The requirement analysis form was tested to ensure all input validation rules correctly accept valid data and reject invalid, incomplete, or malformed submissions with clear error messages.
+The AI analysis engine was tested with a range of requirement descriptions varying in length, complexity, and domain to verify that complexity scoring and requirement categorization produce consistent and semantically appropriate outputs.
+The proposal generation module was tested with multiple requirement profiles to ensure all proposal sections are correctly generated, properly formatted, and contextually relevant to the input requirements.
+The cost estimation model was validated against known historical project data from the Jimstech Innovations repository to confirm that generated estimates fall within statistically acceptable accuracy ranges.
+Each database CRUD operation across all tables was independently tested to verify data integrity, correct constraint enforcement, and appropriate error handling for edge cases.
+User authentication and role-based access control logic were unit tested to confirm that permission checks correctly allow and deny access based on assigned user roles.
+Integration Testing
+Integration testing ensured that the system's individual modules function correctly when combined into the complete integrated application:
+The complete end-to-end workflow from requirement submission through AI analysis, proposal generation, cost estimation, timeline prediction, and notification dispatch was tested to verify correct data flow and processing at each transition point between modules.
+The interface between the React application layer and the NVIDIA LLM API components was tested to ensure reliable API communication, correct data serialization, and appropriate error propagation when AI components return unexpected results.
+Database integration with all application modules was tested to verify that data is correctly stored, retrieved, updated, and deleted across the complete workflow, including verification of referential integrity constraints.
+Role-based access controls were integration tested across all system features to confirm that users can only access the features and data appropriate to their assigned roles, and that unauthorized access attempts are correctly handled.
+Validation Testing
+Validation testing confirmed that the fully assembled system meets the actual requirements defined at the project's outset and satisfies the operational needs of Jimstech Innovations Nigeria Limited:
+The complete system was tested in a simulated operational environment reflecting the conditions at Jimstech Innovations Nigeria Limited, including realistic project requirement data, multiple concurrent users in different roles, and a populated historical project repository.
+Each core function including requirement analysis, proposal generation, cost estimation, timeline prediction, technology recommendation, and user management was validated against the functional requirements specified in Chapter Two to confirm that all specified behaviors are correctly implemented.
+Non-functional requirements including response time performance, interface usability, data security, and system reliability were assessed through structured evaluation against defined acceptance criteria established during the requirements analysis phase.
+This validation phase confirmed that the system meets the expectations expressed in the formal project approval from Jimstech Innovations Nigeria Limited and is ready for organizational deployment and use.
+Hardware and Software Requirements
+To operate the AI-Powered Technical Proposal and Cost Estimation System effectively, the following minimum system requirements have been established based on the system's technical architecture and anticipated usage patterns:
+Client-Side Requirements
+Software Requirements
+Compatible web browsers: Google Chrome version 90 or higher, Mozilla Firefox version 88 or higher, Microsoft Edge version 90 or higher, Safari version 14 or higher
+Supported operating systems: Windows 10 or higher, macOS 11 Big Sur or higher, Linux Ubuntu 20.04 or equivalent, Android 10 or higher (for mobile access), iOS 14 or higher (for mobile access)
+Hardware Requirements
+RAM: Minimum 4 GB (8 GB recommended for optimal performance with the proposal generation interface)
+Processor: Dual-Core 2.0 GHz or higher
+Storage: 500 MB of available local storage for browser caching and temporary file downloads
+Internet: Stable broadband connection with minimum 2 Mbps download speed for responsive use of the proposal generation and AI analysis features
+Display: Minimum 1280 x 720 pixel screen resolution for full dashboard visibility
+Server-Side Requirements
+Software Requirements
+Operating System: Linux Ubuntu Server 20.04 LTS or higher (recommended for production deployment), or Windows Server 2019 or higher
+Static hosting: Vercel
+Database Management System: Supabase PostgreSQL
+Server-Side Scripting: Node.js 18+
+AI Processing Inference: NVIVIDIA NIM LLM API
+Hardware Requirements
+RAM: Minimum 8 GB
+Processor: Quad-Core 2.5 GHz or higher with multi-threading support.
+Storage: Minimum 50 GB SSD storage (100 GB or more recommended to accommodate the growing project repository and proposal document archives)
+Internet: Static IP address with minimum 10 Mbps dedicated bandwidth for stable hosting and user access to the system
+Motherboard: Compatible with multi-core processors and expandable RAM slots to support future system upgrades and scalability.
+Power Supply: Stable and reliable power supply unit (PSU) with sufficient wattage to support server operations and avoid system downtime due to power fluctuations.
+Backup Storage Device: External or network-attached storage (NAS) with at least 100 GB capacity for regular backups and disaster recovery purposes.
+Network Interface Card (NIC): Gigabit Ethernet adapter (1 Gbps or higher) to ensure fast and stable communication between server components and client requests.
+Cooling System: Efficient cooling mechanism (fans or liquid cooling system) to maintain optimal hardware temperature.
+Display: Minimum 1366×768 resolution monitor (Full HD 1920×1080 recommended) for efficient system administration and monitoring of dashboards and reports.
+Keyboard and Mouse: Standard input devices required for server configuration, system administration, and development operations.
+Backup Internet Connection: Secondary internet connection with at least 5 Mbps bandwidth to ensure system availability in case of primary network failure.
+Hardware Scalability Support: Infrastructure must support modular expansion, allowing additional RAM.
+CHAPTER 5
+CONCLUSION AND RECOMMENDATIONS
+Conclusion
+The development of the AI-Powered Technical Proposal and Cost Estimation System for Jimstech Innovations Nigeria Limited represents a significant step forward in addressing the operational inefficiencies that characterize manual proposal preparation and cost estimation processes in software development firms. This project was initiated in direct response to the persistent challenges faced by Jimstech Innovations in managing the pre-project client engagement lifecycle, particularly in the areas of structured requirement analysis, consistent technical proposal generation, and accurate cost and timeline estimation.
+The manual systems previously in use at Jimstech Innovations Nigeria Limited were characterized by heavy reliance on individual expertise, absence of standardized processes, lack of systematic historical data utilization, and significant consumption of senior technical staff time on administrative documentation tasks. These inefficiencies resulted in inconsistent proposal quality, frequent estimation inaccuracies, extended client response times, and reduced capacity for the organization to scale its business development operations effectively as it grew.
+In conclusion, the AI-Powered Technical Proposal and Cost Estimation System stands as a practical and impactful contribution to both the academic body of knowledge at the Adventist University of Central Africa and the operational capabilities of Jimstech Innovations Nigeria Limited. With proper deployment, user training, data migration, and ongoing maintenance, this system has the measurable potential to improve the firm's efficiency, profitability, and competitive positioning in the Nigerian technology.
+Furthermore, the successful implementation of this system will demonstrate the effectiveness of integrating artificial intelligence into core business processes, paving the way for future enhancements and wider adoption of intelligent decision-support systems within the organization.
+Recommendations
+To ensure effective deployment and maximum benefit from the AI-Powered Technical Proposal and Cost Estimation System, the following recommendations are offered to the management and staff of Jimstech Innovations Nigeria Limited:
+System Deployment and Structured User Training: The system should be formally deployed across all relevant teams at Jimstech Innovations Nigeria Limited, with structured training sessions conducted for all user roles including System Administrators, Project Managers, Software Engineers, and Client-facing staff. Training should cover both the technical operation of the system and the organizational workflow changes that accompany its adoption.
+Historical Data Migration: To maximize the effectiveness of the AI estimation models from the outset, the organization should invest time in migrating historical project data including past proposals, cost records, actual timeline data, and project outcomes into the system's project repository. The quality and quantity of historical data directly determine the accuracy of AI-generated estimates.
+Continuous Model Refinement: Because the system uses a hosted Large Language Model, continuous improvement is achieved through prompt and context refinement rather than retraining. As the project repository accumulates completed projects, that historical data should be curated and supplied to the model as richer prompt context, and the prompts/parameters periodically reviewed and validated against actual project outcomes to improve estimate accuracy. The deterministic local fallbacks should also be tuned as more real cost/timeline data becomes available.
+Integration with Client Management Systems: Future development should explore integration between this system and any client relationship management tools or project management platforms used by Jimstech Innovations, enabling seamless data flow from initial client contact through proposal delivery and project execution tracking.
+Regular Performance Monitoring and Evaluation: Key performance indicators such as proposal preparation time reduction, estimation accuracy rate, client proposal acceptance rate, and user satisfaction scores should be tracked regularly to quantify the system's operational impact and identify areas for further improvement.
+REFERENCES
+Books
+Azzeh, M., Nassif, A. B., & Minku, L. L. (2015). Software effort estimation using neural networks. In S. Asmawi (Ed.), Software engineering: Methods, modeling, and teaching (Vol. 3, pp. XX–XX). Springer. Retrieved from https://link.springer.com. Accessed on June 16, 2026.
+Kendall, K. E., & Kendall, J. E. (2019). Systems analysis and design (10th ed.). Pearson Education. Retrieved from https://www.pearson.com. Accessed on June 16, 2026.
+Pressman, R. S., & Maxim, B. R. (2014). Software engineering: A practitioner's approach (8th ed.). McGraw-Hill Education. Retrieved from https://www.mheducation.com. Accessed on June 16, 2026.
+Shelly, G. B., & Rosenblatt, H. J. (2011). Systems analysis and design (9th ed.). Cengage Learning. Retrieved from https://www.cengage.com. Accessed on June 16, 2026.
+Sommerville, I. (2016). Software engineering (10th ed.). Pearson Education. Retrieved from https://www.pearson.com. Accessed on June 16, 2026.
+Journals
+Azzeh, M., & Nassif, A. B. (2016). A hybrid model for estimating software project effort from use case points. Applied Soft Computing, 49, 981–989. https://doi.org/10.1016/j.asoc.2016.05.008.Retrievedfromhttps://doi.org/10.1016/j.asoc.2016.05.008. Accessed on June 16, 2026.
+Jorgensen, M., & Shepperd, M. (2007). A systematic review of software development cost estimation studies. IEEE Transactions on Software Engineering, 33(1), 33–53. https://doi.org/10.1109/TSE.2007.256943.Retrievedfromhttps://doi.org/10.1109/TSE.2007.256943. Accessed on June 16, 2026.
+Molokken-Ostvold, K., & Jorgensen, M. (2005). A comparison of software project
+Websites
+Corporate Affairs Commission Nigeria. (2025). Certificate of incorporation and memorandum of association of Jimstech Innovations Nigeria Limited. Federal Republic of Nigeria. Retrieved from https://www.cac.gov.ng. Accessed on June 16, 2026.
+APPENDICES
+Curriculum Vitae
+Data collection letter
+Approval Letter
+Data Collection Authorisation Letter
+Name | Register User Account
+Actor | Sales, Software Engineer, Project Manager, System Administrator (seeded by the administrator)
+Description | This use case allows a new user to create an account in the AI-Powered Proposal and Cost Estimation System by providing their personal and role-specific information.
+Pre-condition | The user must have access to the system registration page. The user's email address must not be registered in the system.
+Post-condition | A new user account is created and stored in the system. The user receives a confirmation notification and can now log in.
+Normal Flow | 1. User navigates to the registration page. 2. User fills in required details (name, email, role, password). 3. System validates the provided information. 4. System creates the account and stores the details. 5. System displays a registration success confirmation message.
+Alternative Flow | If the email is already registered or required fields are missing, the system displays an appropriate error message and prompts the user to correct the input.
+Name | Login into System
+Actor | Sales, Software Engineer, System Administrator, Project Manager
+Description | This use case allows registered users to authenticate themselves and gain access to the system using their credentials.
+Pre-condition | The user must have a registered account in the system. The system must be accessible and running.
+Post-condition | The user is successfully authenticated and redirected to their role-based dashboard. A user session is initiated.
+Normal Flow | 1. User navigates to the login page. 2. User enters their username/email and password. 3. System validates the credentials against the database. 4. System authenticates the user and identifies their role. 5. System redirects the user to their respective role-based dashboard.
+Alternative Flow | If the credentials are invalid, the system displays an error message. After multiple failed attempts, the account may be temporarily locked.
+Name | Submit Project Requirements
+Actor | Software Engineer, Project Manager, Sales, System Administrator
+Description | This use case allows registered users to submit their project requirements into the system, which will be used by the AI engine to generate a proposal and cost estimate.
+Pre-condition | The user must be logged into the system. The project requirement submission form must be accessible.
+Post-condition | The project requirements are saved in the system and queued for AI analysis.
+Normal Flow | 1. User selects the 'Submit Project Requirements option from the dashboard. 2. System displays the project requirements input form. 3. User fills in project details (scope, type, budget range, timeline preferences, etc.). 4. User submits the form. 5. System validates and saves the requirements and confirms submission to the user.
+Alternative Flow | If required fields are incomplete or contain invalid data, the system highlights the errors and prompts the user to correct them before resubmitting.
+Name | Analyze Project Requirements
+Actor | AI Engine (automated), Software Engineer
+Description | This use case describes the process by which the AI engine processes and analyzes submitted project requirements to extract key information needed for proposal generation and cost estimation.
+Pre-condition | Project requirements must be submitted and stored in the system. The AI analysis module must be active and configured.
+Post-condition | The system produces a structured analysis of output including identified features, complexity level, and resource needs. Results are stored and made available for proposal generation.
+Normal Flow | 1. The system retrieves submitted project requirements. 2. The AI engine processes the text using NLP and classification models. 3. The system identifies project type, scope, key functionalities, and technical requirements. 4. The system determines project complexity and resource requirements. 5. Analysis results are saved and presented to the Software Engineer for review.
+Alternative Flow | If the AI engine cannot confidently interpret ambiguous requirements, it flags them and prompts the engineer to provide clarification before proceeding.
+Name | Generate Project Proposal
+Actor | AI Engine (automated), Software Engineer, Project Manager
+Description | This use case allows the system to automatically generate a structured project proposal based on the analyzed requirements, which can be reviewed, customized, and delivered to the client.
+Pre-condition | Project requirements must have been analyzed successfully. Proposal templates must be configured in the system.
+Post-condition | A complete project proposal document is generated and stored in the system. The Software Engineer is notified and can review or edit the proposal before sending it to the client.
+Normal Flow | 1. System retrieves the analyzed requirements. 2. The AI engine selects the appropriate proposal template. 3. System populates the template with project scope, deliverables, timelines, and team structure. 4. Proposal draft is generated and stored. 5. Software Engineer reviews the proposal and approves or edits it. 6. Final proposal is made available to the client.
+Alternative Flow | If no suitable template is found, the system alerts the engineer to configure a new template before generation can proceed.
+Name | Estimate Project Cost
+Actor | AI Engine (automated), Software Engineer
+Description | This use case allows the system to automatically calculate and provide a detailed cost estimate for a project based on the analyzed requirements, resource needs, and historical project data.
+Pre-condition | Project requirements must have been analyzed. Cost models and historical pricing data must be available in the system.
+Post-condition | A detailed cost breakdown is generated and linked to the project proposal. The cost estimate is stored and available for client reviews.
+Normal Flow | 1. System retrieves the analyzed project requirements and complexity data. 2. AI engine applies cost estimation models using resource rates, timelines, and project type. 3. System calculates itemized cost breakdown (development, testing, design, deployment, etc.). 4. Cost estimate is attached to the generated proposal. 5. Software Engineer reviews the estimate and adjusts if necessary. 6. Final estimate is saved and presented to the client.
+Alternative Flow | If historical data is insufficient for a reliable estimate, the system provides a range of estimates and flags it for manual review.
+Name | Predict Project Timeline
+Actor | AI Engine (automated), Software Engineer
+Description | This use case enables the system to predict a realistic project timeline based on project complexity, team size, required technologies, and historical delivery data.
+Pre-condition | Project requirements must have been analyzed. Historical project timeline data must be available in the system.
+Post-condition | A predicted timeline with milestones and delivery phases is generated and associated with the project proposal.
+Normal Flow | 1. System retrieves analyzed project complexity and resource requirements. 2. AI engine applies timeline prediction models using historical data and current project parameters. 3. System generates a phased timeline with key milestones (design, development, testing, deployment). 4. Predicted timeline is attached to the proposal. 5. Software Engineer reviews and adjusts the timeline if necessary.
+Alternative Flow | If the system lacks sufficient data for a confident prediction, it generates a conservative estimate and recommends manual review by the Software Engineer.
+Name | Recommend Project Technologies
+Actor | AI Engine (automated), Software Engineer
+Description | This use case allows the system to suggest appropriate technologies, frameworks, and tools based on the submitted project requirements and industry best practices.
+Pre-condition | Project requirements must have been analyzed. A technology knowledge base must be configured and up to date in the system.
+Post-condition | A list of recommended technologies with justifications is generated and linked to project analysis. The Software Engineer can review, accept, or modify the recommendations.
+Normal Flow | 1. System retrieves analyzed project type and technical requirements. 2. AI engine queries the technology knowledge base. 3. System matches project needs suitable technology stacks. 4. System generates a ranked list of technology recommendations with justifications. 5. Software Engineer reviews and approves or modifies recommendations. 6. Approved recommendations are included in the project proposal.
+Alternative Flow | If no strong match is found, the system provides general recommendations based on project category and flags the result for manual expert input.
+Name | Manage Project Repository
+Actor | System Administrator, Project Manager, Software Engineer (read only)
+Description | This use case allows authorized users to create, organize, retrieve, update, and archive project records including proposals, cost estimates, timelines, and supporting documents.
+Pre-condition | The user must be logged in with appropriate permissions. At least one project record must exist in the system (for retrieval/update operations).
+Post-condition | Project records are created, updated, or archived as requested. Changes are logged in the system audit trail.
+Normal Flow | 1. User navigates to the project repository section. 2. User selects an action (create, view, edit, or archive a project). 3. System retrieves or accepts the relevant project data. 4. User completes the required action (e.g., updates project status). 5. System saves the changes and confirms the action to the user.
+Alternative Flow | If the user attempts to access or modify a record without sufficient permission, the system denies the action and displays an authorization error.
+Name | Generate Reports and Analytics
+Actor | System Administrator, Sales, Project Manager
+Description | This use case allows authorized users to generate and view reports on system activity, proposal outcomes, cost estimation accuracy, and other performance analytics.
+Pre-condition | The user must be logged in with report generation privileges. Relevant data must be available in the system.
+Post-condition | The requested report is generated and displayed. The report can be exported in supported formats (e.g., PDF, Excel).
+Normal Flow | 1. User navigates to the Reports & Analytics section. 2. User selects the report type and specifies parameters (date range, project type, etc.). 3. System retrieves and processes the relevant data. 4. System generates and displays the report with charts or tables as appropriate. 5. User reviews the report and optionally exports it.
+Alternative Flow | If no data matches the selected parameters, the system notifies the user that no records are available for the specified criteria.
+Name | Manage Templates and Integrations
+Actor | System Administrator, Project Manager
+Description | This use case allows the System Administrator to create, update, configure, or remove proposal templates and manage third-party tool integrations used by the system.
+Pre-condition | The user must be logged in as a System Administrator or Project Manager. The templates and integrations management module must be accessible.
+Post-condition | Templates are created, updated, or removed as requested. Integration settings are saved and applied to the system.
+Normal Flow | 1. Administrator navigates to the Templates and Integrations settings. 2. Administrator selects an action (add, edit, or remove a template). 3. System displays the relevant configuration form. 4.Administrator provides the required information and saves the changes. 5. System validates and applies to the new configuration. 6. System confirms the successful update to the administrator.
+Alternative Flow | If a template is in use by active projects, the system warns the administrator before allowing deletion or modification.
+Name | Perform Security Audit
+Actor | System Administrator
+Description | This use case allows the System Administrator to review system access logs, identify security anomalies, and ensure that all user activities comply with system security policies.
+Pre-condition | The administrator must be logged in with security audit privileges. System audit logs must be enabled and populated.
+Post-condition | An audit report is generated detailing user activities, access events, and any flagged anomalies. Suspicious activities are reported for further investigation.
+Normal Flow | 1. Administrator navigates to the Security Audit section. 2. Administrator selects the audit scope and time period. 3. System retrieves and analyzes the relevant logs. 4. System generates an audit report highlighting key events and flagged anomalies. 5. Administrator reviews the report and takes appropriate action on any identified issues.
+Alternative Flow | If the audit logs are incomplete or corrupted, the system alerts the administrator and recommends a system integrity check.
+Name | Manage User Accounts
+Actor | System Administrator
+Description | This use case allows the System Administrator to create, update, deactivate, or delete user accounts, and to assign or modify user roles and permissions within the system.
+Pre-condition | The administrator must be logged in with user management privileges.
+Post-condition | User accounts are created, updated, deactivated, or deleted as requested. Role assignments are applied, and changes are logged in the system.
+Normal Flow | 1. Administrator navigates to the User Management section. 2. Administrator selects an action (add, edit, deactivate, or remove a user). 3. System displays the relevant user management form. 4. Administrator provides or modifies the necessary information (name, email, role, status). 5. System validates and applies to the changes. 6. System confirms the update and notifies the affected user if applicable.
+Alternative Flow | If the administrator attempts to delete an account associated with active projects, the system warns them and recommends deactivation instead of permanent deletion.
+Component | Symbol | Description
+Actor |  | An actor represents a user or external entity that interacts with the system being modeled. It's crucial to remember that the actor is always external to the system itself, meaning they are the ones initiating or receiving actions from outside the system's boundaries.
+Objects |  | Objects represent the classes and components within the system that interact with each other.
+Lifelines |  | It illustrates the timeline of an object's life within a specific scenario. Messages represented by horizontal arrows are drawn between these lifelines to illustrate the chronological order of interactions.
+Messages |  | In a sequence diagram, messages are the The direction of the arrow that indicates the sender and the receiver of the message. communication between objects and actors. They represent a specific action or event, like a method of call, and are shown as horizontal arrows drawn from one lifeline to another.
+Term | Description | Illustration
+Entity | A real-world object or concept that holds data relevant to the system. | 
+Attribute / Field | A characteristic of an entity representing a specific data point. | 
+Relationship | A connection between two entities, depicting how their data is related. | 
+Cardinality | Specifies the number of occurrences of one entity in relation to another (one-to-one, one-to-many, many-to- many). | 
+Field Name | Data Type | Constraints | Description
+user_id | uuid | PK, FK, auth.users(id) | Unique identifier for each user
+full_name | text | NOT NULL | Full name of the user
+email | text | UNIQUE, NOT NULL | User email address for login
+phone | text | nullable | Contact Phone Number
+employee_id | text | UNIQUE, nullable | Employee identifier
+company_name | text | nullable | Company/Organization
+job_title | text | nullable | Job title
+department | text | nullable | Department
+role | text | NOT NULL, default engineer | Admin, Project Manager, Engineer, Sales
+is_active | boolean | NOT NULL, default true | Account active status
+created_at | timestamptz | NOT NULL default now() | Creation timestamp
+Updated_at | timestamptz | NOT NULL, default now() | Last Update Timestamp
+Field Name | Data Type | Constraints | Description
+id | uuid | PK,default gen_random_uuid() | Project identifier
+client_id | uuid | FK, client(id) | Associated client record
+title | text | NOT NULL | Project title
+description | text | nullable | Project description
+industry | text | nullable | Client industry domain
+project_type | text | NOT NULL | Type of project
+status | project_status | NOT NULL, default draft | Project lifecycle status
+requirements_text | text | nullable | Requirements description
+Target_users | text | nullable | Expected user base
+integration _needs | text | nullable | Integration requirements
+constraints | text | nullable | Project constraints
+complexity_score | numeric (5,2) | CHECK 0-100 | AI computed score
+Confidence_score | numeric (5,2) | CHECK 0-100 | Analysis confidence score
+submitted_by | uuid | FK, users_profile(id) | Submitting user
+created_at | timestamptz | NOT NULL, default now() | Timestamp
+Updated_at | timestamptz | NOT NULL, default now() | Timestamp
+Field Name | Data Type | Constraints | Description
+id | uuid | PK | Proposal identifier
+project_id | uuid | FK, project(id) | Associated project record
+created_by | uuid | FK, user_profile(id) | Author
+title | text | NOT NULL | Proposal title
+template_name | text | nullable | Template used
+tone | text | NOT NULL default ‘professional’ | Writing tone
+detail_level | text | NOT NULL, default ‘standard’ | Level of details
+executive_summary/ technical_approach/ architecture_description | text | nullable | Narrative sections
+deliverables/ assumptions/ acceptance_criteria | jsonb | default ‘[]’ | Structured list sections
+status | proposal_status | NOT NULL default 'draft' | Proposal Status
+version | integer | NOT NULL, default 1 | Version number
+generated_content | jsonb | NOT NULL, default ‘{}’ | Full generated content
+created_at | timestamptz | NOT NULL, default now() | Generation timestamp
+Updated_at | timestamptz | NOT NULL, default now() | Last Generation timestamp
+Field Name | Data Type | Constraints | Description
+id | uuid | PK | Estimation identifier
+project_id | uuid | FK, project(id) | Associated project record
+proposal_id | uuid | FK, proposals(id) | Associated proposal
+created_by | uuid | FK, user_profiles(id) | Author
+currency | text | NOT NULL, default ‘NULL’ | Currency of the estimate
+development_cost | numeric (14,2) | NOT NULL, default 0 | Development labour cost
+infrastructure_cost | numeric (14,2) | NOT NULL, default 0 | Infrastructure/hosting cost
+third_party_cost | numeric (14,2) | NOT NULL, default 0 | Third Party/licensing cost
+contingency_percent | numeric (5,2) | NOT NULL, default 10 | Contingency percentage
+contingency_amount | numeric (14,2) | NOT NULL, default 0 | Contingency amount
+total_cost | numeric (5,2) | NOT NULL, default 0 | Total project cost
+min_cost/max_cost | numeric (5,2) | nullable | Estimate range
+confidence_score | numeric (5,2) | CHECK 0-100 | Estimation confidence
+assumptions | jsonb | NOT NULL, default ‘[]’ | Estimation assumptions
+create_at | timestamptz | NOT NULL, default now() | Estimation generation timestamp
+Field Name | Data Type | Constraints | Description
+id | uuid | PK | Recommendation identifier
+project_id | uuid | FK, project(id) | Associated project record
+created_by | uuid | FK, user_profiles(id) | Author
+stack_name | text | NOT NULL | Recommended stack
+frontend | text | nullable | Recommended frontend
+backend | text | nullable | Recommended backend
+database_name | text | nullable | Recommended database
+hosting | text | nullable | Recommended hosting /deployment
+match_score | numeric (5,2) | CHECK 0 – 100 | Suitability score
+rationale | text | nullable | Reasoning
+pros/cons/alternatives | jsonb | default ‘[]’ | Structured lists
+created_at | timestamptz | NOT NULL, default now() | Creation timestamp
+Field Name | Data Type | Constraints | Description
+id | uuid | PK | Notification identifier
+user_id | uuid | FK, user_profiles(id) | Recipient
+title | text | NOT NULL | Notification title
+message | text | NOT NULL | Notification body
+type | text | NOT NULL, default ‘info’ | Type (info/success/warning)
+entity_type | text | nullable | Related entity type
+entity_id | text | nullable | Related entity type
+read_at | timestampz | nullable | Read timestamp (null = unread)
+sent_at | timestamptz | NOT NULL, default now() | Created timestamp
+Technology / Tool | Use in the System
+React 18 with TypeScript | Frontend component architecture and typed UI implementation.
+Vite | Development server and build tools.
+React Router DOM v7 | Client-side routing and protected route flow.
+Tailwind CSS v4 | Responsive styling and consistent visual design.
+Radix UI Components | Accessible UI primitives.
+MUI (@mui/material) | Additional icons
+Framer Motion (motion) | UI animation and transitions
+Lucide React | Application icons.
+Recharts | Charts for dashboards, reports, cost breakdowns, and analysis of results.
+Sonner | Toast notification support.
+NVIDIA NIM LLM API (meta/llama-3.3-70b-instruct) | AI requirement analysis, proposal generation, cost & estimation, technology recommendation.
+Supabase PostgreSQL | Proposed production authentication, storage, policies, and audit persistence.
+Supabase Studio | Database administration and inspection
+Visual Studio Code | Development of the environment.

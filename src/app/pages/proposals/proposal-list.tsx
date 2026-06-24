@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Archive, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { Archive, Download, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole } from '../../../lib/permissions';
 import { toast } from 'sonner';
+import { exportStructuredReport, type ExportFormat } from '../../../lib/export';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+import { formatCostEstimate, formatTechRecommendation, formatTimelinePrediction, loadProposalPlanning, type ProposalPlanning } from '../../../lib/proposal-planning';
 
 type ProposalRow = {
   id: string;
@@ -26,16 +29,13 @@ type ProjectRow = {
   requirements_text?: string | null;
 };
 
-type CostEstimateRow = {
-  total_cost?: number | null;
-};
-
 function formatStatus(status: ProposalRow['status']) {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export default function ProposalList() {
   const [proposals, setProposals] = useState<ProposalRow[]>([]);
+  const [planning, setPlanning] = useState<ProposalPlanning>({ costs: {}, tech: {}, timelines: {} });
   const [archivedProjectIds, setArchivedProjectIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,9 @@ export default function ProposalList() {
           selectRows<{ project_id?: string | null }>('project_repository', 'select=project_id'),
         ]);
         setProposals(rows);
+        loadProposalPlanning(rows.map((row) => row.project_id))
+          .then(setPlanning)
+          .catch((error) => console.warn('Unable to load proposal planning data:', error));
         setArchivedProjectIds(new Set(repositoryRows.map((row) => row.project_id).filter(Boolean) as string[]));
       } catch (error) {
         console.warn('Unable to load proposals:', error);
@@ -97,7 +100,7 @@ export default function ProposalList() {
       }
 
       const [project] = await selectRows<ProjectRow>('projects', `select=id,title,project_type,requirements_text&id=eq.${proposal.project_id}`);
-      const [costEstimate] = await selectRows<CostEstimateRow>('cost_estimations', `select=total_cost&project_id=eq.${proposal.project_id}&order=created_at.desc&limit=1`);
+      const [costEstimate] = await selectRows<{ total_cost?: number | null }>('cost_estimations', `select=total_cost&project_id=eq.${proposal.project_id}&order=created_at.desc&limit=1`);
       const generatedContent = proposal.generated_content ?? {};
       const techText = String(generatedContent['tech-stack'] ?? generatedContent.technical ?? '');
       const technologies = techText
@@ -136,6 +139,34 @@ export default function ProposalList() {
     );
   }, [proposals, search]);
 
+  const exportProposals = (format: ExportFormat) => {
+    exportStructuredReport('Proposal Records Report', [
+      { heading: 'Summary', body: `Total Proposals: ${filteredProposals.length}\nArchived Projects: ${filteredProposals.filter((proposal) => archivedProjectIds.has(proposal.project_id)).length}` },
+      {
+        heading: 'Proposal Records',
+        body: filteredProposals.map((proposal) => [
+          `Title: ${proposal.title}`,
+          `Status: ${formatStatus(proposal.status)}`,
+          `Template: ${proposal.template_name || 'Not set'}`,
+          `Version: ${proposal.version}`,
+          `Created: ${new Date(proposal.created_at).toLocaleString()}`,
+          `Archived: ${archivedProjectIds.has(proposal.project_id) ? 'Yes' : 'No'}`,
+          `Completed Sections: ${Object.keys(proposal.generated_content ?? {}).length}`,
+          '',
+          'Technology Stack:',
+          formatTechRecommendation(planning.tech[proposal.project_id]),
+          '',
+          'Cost Estimate:',
+          formatCostEstimate(planning.costs[proposal.project_id]),
+          '',
+          'Timeline Prediction:',
+          formatTimelinePrediction(planning.timelines[proposal.project_id]),
+        ].join('\n')).join('\n\n') || 'No proposals found.',
+      },
+    ], format, 'proposal-records-report');
+    toast.success(`Proposal report exported as ${format.toUpperCase()}.`);
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       <div className="flex items-start justify-between gap-3">
@@ -143,14 +174,29 @@ export default function ProposalList() {
           <h1 className="text-3xl font-bold text-gray-900">Proposals</h1>
           <p className="text-gray-600 mt-1">Proposal records</p>
         </div>
-        {canCreate && (
-          <Link to="/proposals/new" aria-label="New Proposal" className="shrink-0">
-            <Button variant="primary" size="lg" className="h-12 w-12 px-0 sm:w-auto sm:px-6">
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">New Proposal</span>
-            </Button>
-          </Link>
-        )}
+        <div className="flex shrink-0 gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="lg" aria-label="Export Proposals" className="h-12 w-12 px-0 sm:w-auto sm:px-6" disabled={filteredProposals.length === 0}>
+                <Download className="h-5 w-5" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportProposals('markdown')}>Markdown</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportProposals('pdf')}>PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportProposals('doc')}>DOC</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {canCreate && (
+            <Link to="/proposals/new" aria-label="New Proposal">
+              <Button variant="primary" size="lg" className="h-12 w-12 px-0 sm:w-auto sm:px-6">
+                <Plus className="h-5 w-5" />
+                <span className="hidden sm:inline">New Proposal</span>
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <Card>

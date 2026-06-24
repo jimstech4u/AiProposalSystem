@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, Mail, Phone, MapPin, Building2 } from 'lucide-react';
 import { selectRows } from '../../../lib/supabase';
+import { openGmailCompose } from '../../../lib/gmail';
 
 type ClientRow = {
   id: string;
@@ -89,12 +90,19 @@ export default function ClientProfile() {
             </Button>
           </Link>
           {client.contact_email && (
-            <a href={`mailto:${client.contact_email}`} aria-label="Send Email">
-              <Button variant="outline" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+              <Button
+                variant="outline"
+                className="h-10 w-10 px-0 sm:w-auto sm:px-4"
+                aria-label="Send Email"
+                onClick={() => openGmailCompose({
+                  to: client.contact_email!,
+                  subject: `Follow up from JimsTech4U about ${client.company_name}`,
+                  body: `Hello ${client.contact_name || client.company_name},\n\n`,
+                })}
+              >
                 <Mail className="w-4 h-4" />
                 <span className="hidden sm:inline">Send Email</span>
               </Button>
-            </a>
           )}
         </div>
       </div>

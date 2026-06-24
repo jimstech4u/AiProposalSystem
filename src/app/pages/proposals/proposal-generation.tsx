@@ -6,11 +6,12 @@ import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, Sparkles, Save, Download, FileText, ClipboardCheck, Send, Info, Trash2, UserRound, ListChecks, Cpu, Calculator, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateWithNvidia, getNvidiaErrorMessage, getNvidiaRetryAfterMs, isNvidiaQuotaError, isNvidiaRetryableError } from '../../../lib/nvidia';
-import { downloadTextFile, toReport } from '../../../lib/export';
+import { exportStructuredReport, type ExportFormat } from '../../../lib/export';
 import { readJson, removeJson, saveJson } from '../../../lib/storage';
 import { insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { getStoredSession } from '../../../lib/permissions';
 import { standardProposalTemplate } from '../../../lib/default-templates';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 
 const sections = [
   { id: 'cover', name: 'Cover Page' },
@@ -767,13 +768,68 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
     }
   };
 
-  const handleExport = () => {
-    const report = toReport(
-      `${project.name} Technical Proposal`,
-      sections.map((section) => ({ heading: section.name, body: content[section.id] ?? 'Pending generation.' }))
-    );
-    downloadTextFile(`${project.name || 'proposal'}.doc`, report, 'application/msword');
-    toast.success('Proposal exported.');
+  const handleExport = (format: ExportFormat) => {
+    exportStructuredReport(`${project.name} Technical Proposal`, [
+      {
+        heading: 'Proposal Summary',
+        body: [
+          `Title: ${proposalTitle}`,
+          `Client: ${project.client}`,
+          `Project: ${project.name}`,
+          `Template: ${templateName}`,
+          `Tone: ${tone}`,
+          `Detail Level: ${detailLevel}`,
+          `Status: ${proposalId ? 'Saved draft' : 'Unsaved draft'}`,
+        ].join('\n'),
+      },
+      { heading: 'Project Context', body: project.description || 'No project description captured.' },
+      {
+        heading: 'Requirements',
+        body: requirementItems.map((item: any, index: number) => `${index + 1}. [${item.priority ?? 'medium'}] ${item.description}`).join('\n') || 'No requirements captured.',
+      },
+      {
+        heading: 'Technology Recommendation',
+        body: techRecommendation
+          ? [
+              `Stack: ${techRecommendation.stack_name}`,
+              `Frontend: ${techRecommendation.frontend || 'Not set'}`,
+              `Backend: ${techRecommendation.backend || 'Not set'}`,
+              `Database: ${techRecommendation.database_name || 'Not set'}`,
+              `Hosting: ${techRecommendation.hosting || 'Not set'}`,
+              `Match Score: ${techRecommendation.match_score ?? 'Not set'}`,
+              `Rationale: ${techRecommendation.rationale || 'Not provided.'}`,
+            ].join('\n')
+          : 'No technology recommendation saved yet.',
+      },
+      {
+        heading: 'Cost Estimate',
+        body: costEstimate
+          ? [
+              `Development Cost: NGN ${Number(costEstimate.development_cost || 0).toLocaleString()}`,
+              `Infrastructure Cost: NGN ${Number(costEstimate.infrastructure_cost || 0).toLocaleString()}`,
+              `Third Party Cost: NGN ${Number(costEstimate.third_party_cost || 0).toLocaleString()}`,
+              `Contingency: ${costEstimate.contingency_percent}% / NGN ${Number(costEstimate.contingency_amount || 0).toLocaleString()}`,
+              `Total Cost: NGN ${Number(costEstimate.total_cost || 0).toLocaleString()}`,
+              `Range: NGN ${Number(costEstimate.min_cost || 0).toLocaleString()} - NGN ${Number(costEstimate.max_cost || 0).toLocaleString()}`,
+              `Confidence: ${costEstimate.confidence_score ?? 'Not set'}`,
+            ].join('\n')
+          : 'No cost estimate saved yet.',
+      },
+      {
+        heading: 'Timeline Prediction',
+        body: timelinePrediction
+          ? [
+              `Duration: ${timelinePrediction.duration_weeks} weeks`,
+              `Range: ${timelinePrediction.min_weeks ?? 'Not set'} - ${timelinePrediction.max_weeks ?? 'Not set'} weeks`,
+              `Risk Level: ${timelinePrediction.risk_level ?? 'Not set'}`,
+              `Confidence: ${timelinePrediction.confidence_score ?? 'Not set'}`,
+              `Critical Path:\n${(timelinePrediction.critical_path ?? []).map((item) => `- ${item.name || 'Milestone'}${item.date ? ` (${item.date})` : ''}${item.status ? ` - ${item.status}` : ''}`).join('\n') || 'No critical path saved.'}`,
+            ].join('\n')
+          : 'No timeline prediction saved yet.',
+      },
+      ...sections.map((section) => ({ heading: section.name, body: content[section.id] ?? 'Pending generation.' })),
+    ], format, project.name || 'proposal');
+    toast.success(`Proposal exported as ${format.toUpperCase()}.`);
   };
 
   const clearLocalProposalFlow = () => {
@@ -829,10 +885,19 @@ Return polished proposal text only. Do not return JSON or markdown fences.`;
                 <Trash2 className="w-4 h-4" />
                 <span className="hidden sm:inline">Clear Draft</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExport} aria-label="Export" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource}>
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" aria-label="Export" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource}>
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Export</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport('markdown')}>Markdown</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('pdf')}>PDF</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('doc')}>DOC</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="primary" size="sm" onClick={() => saveProposal().then((saved) => saved && toast.success('Proposal saved.'))} aria-label="Save" className="h-10 w-10 px-0 sm:w-auto sm:px-3" disabled={!hasProposalSource || persisting}>
                 <Save className="w-4 h-4" />
                 <span className="hidden sm:inline">{persisting ? 'Saving...' : 'Save'}</span>

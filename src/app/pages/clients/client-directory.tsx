@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Search, Users, Building2, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Search, Users, Building2, Plus, Pencil, Trash2, X, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { deleteRows, insertRow, isJwtExpired, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole, getStoredSession } from '../../../lib/permissions';
 import { toast } from 'sonner';
+import { openGmailCompose } from '../../../lib/gmail';
 
 type ClientRow = {
   id: string;
@@ -241,6 +242,21 @@ export default function ClientDirectory() {
                   </Button>
                 </Link>
                 <div className="mt-2 flex gap-2">
+                  {client.contact_email && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => openGmailCompose({
+                        to: client.contact_email!,
+                        subject: `Follow up from JimsTech4U about ${client.company_name}`,
+                        body: `Hello ${client.contact_name || client.company_name},\n\n`,
+                      })}
+                    >
+                      <Mail className="h-4 w-4" />
+                      Send Mail
+                    </Button>
+                  )}
                   {canUpdate && (
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(client)}>
                       <Pencil className="h-4 w-4" />

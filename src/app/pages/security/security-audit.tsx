@@ -3,8 +3,9 @@ import { Shield, FileText, Download, AlertTriangle, Check, X, UserCog, Trash2, S
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { deleteRows, selectRows, updateRows, type AppRole } from '../../../lib/supabase';
-import { downloadTextFile, toReport } from '../../../lib/export';
+import { exportStructuredReport, type ExportFormat } from '../../../lib/export';
 import { toast } from 'sonner';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 
 type AuditLog = {
   id: string;
@@ -104,16 +105,30 @@ export default function SecurityAuditPage() {
     }
   };
 
-  const exportAudit = () => {
-    downloadTextFile(
-      'audit-log.txt',
-      toReport('ProposalAI Audit Log', [
-        {
-          heading: 'Recent Audit Records',
-          body: auditLogs.map((log) => `${new Date(log.created_at).toISOString()} | ${log.action} | ${log.entity_type} | ${log.entity_id ?? ''}`).join('\n') || 'No audit records.',
-        },
-      ])
-    );
+  const exportAudit = (format: ExportFormat) => {
+    exportStructuredReport('ProposalAI Security & Audit Report', [
+      { heading: 'Security Summary', body: `Audit Records: ${auditLogs.length}\nRLS Status: Enabled\nSecurity Alerts: 0\nUsers: ${users.length}\nActive Users: ${users.filter((user) => user.is_active).length}` },
+      {
+        heading: 'Recent Audit Records',
+        body: filteredAuditLogs.map((log) => `${new Date(log.created_at).toISOString()} | ${log.action} | ${log.entity_type} | ${log.entity_id ?? ''}`).join('\n') || 'No audit records.',
+      },
+      {
+        heading: 'Role Permissions Matrix',
+        body: permissions.map((perm) => `${perm.role}: create=${perm.create ? 'yes' : 'no'}, edit=${perm.edit ? 'yes' : 'no'}, delete=${perm.delete ? 'yes' : 'no'}, approve=${perm.approve ? 'yes' : 'no'}`).join('\n'),
+      },
+      {
+        heading: 'User Access Management',
+        body: filteredUsers.map((user) => [
+          `Name: ${user.full_name}`,
+          `Email: ${user.email}`,
+          `Role: ${user.role}`,
+          `Status: ${user.is_active ? 'Active' : 'Inactive'}`,
+          `Job: ${user.job_title || user.department || 'Not set'}`,
+          `Created: ${new Date(user.created_at).toLocaleString()}`,
+        ].join('\n')).join('\n\n') || 'No user profiles found.',
+      },
+    ], format, 'proposalai-security-audit-report');
+    toast.success(`Security report exported as ${format.toUpperCase()}.`);
   };
 
   const deleteAuditLog = async (log: AuditLog) => {
@@ -188,10 +203,19 @@ export default function SecurityAuditPage() {
                   className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-48"
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={exportAudit} aria-label="Export" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" aria-label="Export" className="h-8 w-8 px-0 sm:w-auto sm:px-3">
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Export</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportAudit('markdown')}>Markdown</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportAudit('pdf')}>PDF</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportAudit('doc')}>DOC</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 

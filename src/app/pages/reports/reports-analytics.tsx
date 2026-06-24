@@ -6,8 +6,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useDashboardData } from '../dashboards/use-dashboard-data';
 import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole, getStoredSession } from '../../../lib/permissions';
-import { downloadTextFile, toReport } from '../../../lib/export';
+import { exportStructuredReport, type ExportFormat } from '../../../lib/export';
 import { toast } from 'sonner';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 
 type ReportConfig = {
   id: string;
@@ -97,15 +98,25 @@ export default function ReportsAnalytics() {
     ).map(([name, total]) => ({ name, total }));
   }, [projects]);
 
-  const exportCurrentReport = () => {
-    downloadTextFile(
-      'proposalai-analytics-report.txt',
-      toReport('ProposalAI Analytics Report', [
-        { heading: 'Summary', body: `Projects: ${stats.projects}\nActive Projects: ${stats.activeProjects}\nProposals: ${stats.proposals}\nClients: ${stats.clients}` },
-        { heading: 'Proposal Status', body: statusData.map((item) => `- ${item.name}: ${item.total}`).join('\n') || 'No proposal status data.' },
-        { heading: 'Project Types', body: projectTypeData.map((item) => `- ${item.name}: ${item.total}`).join('\n') || 'No project type data.' },
-      ])
-    );
+  const exportCurrentReport = (format: ExportFormat) => {
+    exportStructuredReport('ProposalAI Analytics Report', [
+      { heading: 'Summary', body: `Projects: ${stats.projects}\nActive Projects: ${stats.activeProjects}\nProposals: ${stats.proposals}\nClients: ${stats.clients}` },
+      { heading: 'Proposal Status Distribution', body: statusData.map((item) => `- ${item.name}: ${item.total}`).join('\n') || 'No proposal status data.' },
+      { heading: 'Project Type Distribution', body: projectTypeData.map((item) => `- ${item.name}: ${item.total}`).join('\n') || 'No project type data.' },
+      {
+        heading: 'Saved Report Configurations',
+        body: filteredReports.map((report) => [
+          `Report: ${report.name}`,
+          `Type: ${report.report_type}`,
+          `Description: ${report.description || 'No description.'}`,
+          `Schedule: ${report.schedule || 'Manual'}`,
+          `Recipients: ${(report.recipients ?? []).join(', ') || 'None'}`,
+          `Filters: ${JSON.stringify(report.filters ?? {}, null, 2)}`,
+          `Created: ${new Date(report.created_at).toLocaleString()}`,
+        ].join('\n')).join('\n\n') || 'No saved report configurations.',
+      },
+    ], format, 'proposalai-analytics-report');
+    toast.success(`Analytics report exported as ${format.toUpperCase()}.`);
   };
 
   const openCreate = () => {
@@ -178,10 +189,19 @@ export default function ReportsAnalytics() {
           <p className="text-gray-600 mt-1">Metrics and saved report configurations calculated from records.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={exportCurrentReport} aria-label="Export Analytics" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export Analytics</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" aria-label="Export Analytics" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Export Analytics</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => exportCurrentReport('markdown')}>Markdown</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportCurrentReport('pdf')}>PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportCurrentReport('doc')}>DOC</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {canCreate && (
             <Button onClick={openCreate} aria-label="New Report" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
               <Plus className="w-4 h-4" />

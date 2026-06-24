@@ -5,9 +5,10 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { deleteRows, insertRow, selectRows, updateRows } from '../../../lib/supabase';
 import { can, getStoredRole, getStoredSession } from '../../../lib/permissions';
-import { downloadTextFile, toReport } from '../../../lib/export';
+import { exportStructuredReport, type ExportFormat } from '../../../lib/export';
 import { toast } from 'sonner';
 import { standardProposalTemplate } from '../../../lib/default-templates';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
 
 type TemplateRow = {
   id: string;
@@ -186,15 +187,14 @@ export default function TemplateManagementPage() {
     }
   };
 
-  const exportTemplate = (template: TemplateRow) => {
-    downloadTextFile(
-      `${template.name}.txt`,
-      toReport(template.name, [
-        { heading: 'Description', body: template.description || 'No description.' },
-        { heading: 'Sections', body: (template.sections ?? []).map((section) => `- ${section}`).join('\n') },
-        { heading: 'Placeholders', body: placeholdersToText(template.placeholders) || 'No placeholders.' },
-      ])
-    );
+  const exportTemplate = (template: TemplateRow, format: ExportFormat) => {
+    exportStructuredReport(template.name, [
+      { heading: 'Template Summary', body: `Name: ${template.name}\nCategory: ${template.category || 'Uncategorized'}\nVersion: ${template.version}\nDefault: ${template.is_default ? 'Yes' : 'No'}\nCreated: ${new Date(template.created_at).toLocaleString()}\nUpdated: ${new Date(template.updated_at).toLocaleString()}` },
+      { heading: 'Description', body: template.description || 'No description.' },
+      { heading: 'Sections', body: (template.sections ?? []).map((section, index) => `${index + 1}. ${section}`).join('\n') || 'No sections configured.' },
+      { heading: 'Placeholders', body: placeholdersToText(template.placeholders) || 'No placeholders.' },
+    ], format, template.name);
+    toast.success(`Template exported as ${format.toUpperCase()}.`);
   };
 
   return (
@@ -296,9 +296,18 @@ export default function TemplateManagementPage() {
                     <Copy className="w-4 h-4" />
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={() => exportTemplate(template)}>
-                  <Download className="w-4 h-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" aria-label="Export Template">
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => exportTemplate(template, 'markdown')}>Markdown</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportTemplate(template, 'pdf')}>PDF</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportTemplate(template, 'doc')}>DOC</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="outline" size="sm" onClick={() => setPreviewing(template)}>
                   <Eye className="w-4 h-4" />
                 </Button>
